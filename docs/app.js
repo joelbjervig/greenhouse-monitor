@@ -104,6 +104,19 @@ function renderDashboard({ headers, data }) {
     document.querySelectorAll('.plot-tile .latest').forEach(el => el.style.color = valueColor);
     document.querySelectorAll('.plot-tile h2').forEach(el => el.style.color = textColor);
 
+    // Adapt tile and popup backgrounds based on brightness
+    const tileBg = brightness > 128 ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+    const tileBorder = brightness > 128 ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
+    document.querySelectorAll('.plot-tile').forEach(el => {
+        el.style.background = tileBg;
+        el.style.borderColor = tileBorder;
+    });
+    const overlayCard = document.querySelector('.overlay-card');
+    if (overlayCard) {
+        overlayCard.style.background = brightness > 128 ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
+        overlayCard.style.borderColor = tileBorder;
+    }
+
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `Last refresh: ${now.toLocaleTimeString()}  ·  ${data.length} readings`;
     document.getElementById('lastUpdate').classList.remove('error');
