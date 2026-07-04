@@ -94,17 +94,13 @@
             inset: 0;
             background: transparent;
             z-index: 100;
-            padding: 24px;
-            padding-top: env(safe-area-inset-top, 24px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
         .overlay.active { opacity: 1; pointer-events: auto; }
         .overlay-card {
+            position: absolute;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
@@ -114,15 +110,14 @@
             width: 90%;
             max-width: 500px;
             height: auto;
-            max-height: 70vh;
             display: flex;
             flex-direction: column;
-            transform: scale(0.9) translateY(20px);
+            transform: scale(0.9);
             transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s ease;
             opacity: 0;
         }
         .overlay.active .overlay-card {
-            transform: scale(1) translateY(0);
+            transform: scale(1);
             opacity: 1;
         }
         .overlay-card h2 {

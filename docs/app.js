@@ -168,12 +168,27 @@ function storeChartData(id, title, value, traces) {
     chartData[id] = { title, value, traces };
 }
 
-function openOverlay(id) {
+function openOverlay(id, tileEl) {
     const info = chartData[id];
     if (!info) return;
 
     document.getElementById('overlay-title').textContent = info.title;
     document.getElementById('overlay-value').textContent = info.value;
+
+    // Position card above the tile
+    const card = document.querySelector('.overlay-card');
+    const rect = tileEl.getBoundingClientRect();
+    const cardWidth = Math.min(window.innerWidth * 0.9, 500);
+    let left = rect.left + rect.width / 2 - cardWidth / 2;
+    // Keep within viewport
+    left = Math.max(8, Math.min(left, window.innerWidth - cardWidth - 8));
+    let top = rect.top - 10;
+    card.style.left = left + 'px';
+    card.style.width = cardWidth + 'px';
+    // Place above tile, but shift down if not enough space
+    card.style.bottom = (window.innerHeight - top) + 'px';
+    card.style.top = 'auto';
+
     document.getElementById('overlay').classList.add('active');
 
     const expandedLayout = {
@@ -209,7 +224,7 @@ document.querySelectorAll('.plot-tile').forEach(tile => {
     tile.style.cursor = 'pointer';
     tile.addEventListener('click', () => {
         const plotArea = tile.querySelector('.plot-area');
-        if (plotArea) openOverlay(plotArea.id);
+        if (plotArea) openOverlay(plotArea.id, tile);
     });
 });
 
