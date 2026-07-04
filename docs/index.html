@@ -101,9 +101,9 @@
         .overlay.active { opacity: 1; pointer-events: auto; }
         .overlay-card {
             position: absolute;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
             border-radius: 40px;
             corner-shape: squircle;
             padding: 24px;
@@ -113,12 +113,15 @@
             display: flex;
             flex-direction: column;
             transform: scale(0.9);
-            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s ease, backdrop-filter 0.4s ease, -webkit-backdrop-filter 0.4s ease, background 0.4s ease;
             opacity: 0;
         }
         .overlay.active .overlay-card {
             transform: scale(1);
             opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }
         .overlay-card h2 {
             font-size: 1rem;

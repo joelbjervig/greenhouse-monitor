@@ -72,29 +72,32 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
 
     // Set page background gradient based on current RGB sensor values
-    // BH1749 outputs raw counts — normalize by total intensity to get color ratio,
-    // then scale brightness by overall light level
+    // Normalize by max channel to preserve color hue, use total for brightness
     const rVal = parseInt(latest[colMap.red]) || 0;
     const gVal = parseInt(latest[colMap.green]) || 0;
     const bVal = parseInt(latest[colMap.blue]) || 0;
-    const total = rVal + gVal + bVal || 1;
-    // Color ratios (what color the light actually is)
-    const rRatio = rVal / total;
-    const gRatio = gVal / total;
-    const bRatio = bVal / total;
-    // Brightness based on how much light there is (log scale for wide range)
-    const intensity = Math.min(Math.log(total + 1) / Math.log(65535), 1);
-    const maxBg = 120;
-    const baseBg = 15;
-    const bright = baseBg + intensity * maxBg;
+    const maxChannel = Math.max(rVal, gVal, bVal, 1);
+    // Color ratios relative to dominant channel (preserves actual hue)
+    // e.g. red light: R=100,G=10,B=5 → ratios 1.0, 0.1, 0.05 → clearly red
+    const rRatio = rVal / maxChannel;
+    const gRatio = gVal / maxChannel;
+    const bRatio = bVal / maxChannel;
+    // Brightness from total intensity vs max observed in dataset
+    const totalNow = rVal + gVal + bVal;
+    const maxTotal = Math.max(...red.map((r, i) => r + green[i] + blue[i]), 1);
+    const intensityRatio = Math.min(totalNow / maxTotal, 1);
+    // Map: color from ratios, brightness from intensity
+    const maxBg = 140;
+    const minBg = 25;
+    const bright = minBg + intensityRatio * (maxBg - minBg);
     const rBg = Math.round(rRatio * bright);
     const gBg = Math.round(gRatio * bright);
     const bBg = Math.round(bRatio * bright);
-    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 10}, ${gBg + 10}, ${bBg + 10}), rgb(${Math.max(rBg - 10, 0)}, ${Math.max(gBg - 10, 0)}, ${Math.max(bBg - 10, 0)}))`;
+    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 15}, ${gBg + 15}, ${bBg + 15}), rgb(${Math.round(rBg * 0.3)}, ${Math.round(gBg * 0.3)}, ${Math.round(bBg * 0.3)}))`;
     document.body.style.minHeight = '100vh';
 
     // Set text color based on background brightness (perceptual luminance)
-    const brightness = 0.299 * (rBg + 20) + 0.587 * (gBg + 20) + 0.114 * (bBg + 20);
+    const brightness = 0.299 * (rBg + 15) + 0.587 * (gBg + 15) + 0.114 * (bBg + 15);
     const textColor = brightness > 128 ? '#111' : '#eee';
     const valueColor = brightness > 128 ? '#000' : '#fff';
     document.body.style.color = textColor;
@@ -175,19 +178,25 @@ function openOverlay(id, tileEl) {
     document.getElementById('overlay-title').textContent = info.title;
     document.getElementById('overlay-value').textContent = info.value;
 
-    // Position card above the tile
+    // Position card on top of (above) the tile, not covering it
     const card = document.querySelector('.overlay-card');
     const rect = tileEl.getBoundingClientRect();
     const cardWidth = Math.min(window.innerWidth * 0.9, 500);
+    const cardHeight = 280;
     let left = rect.left + rect.width / 2 - cardWidth / 2;
-    // Keep within viewport
     left = Math.max(8, Math.min(left, window.innerWidth - cardWidth - 8));
-    let top = rect.top - 10;
-    card.style.left = left + 'px';
     card.style.width = cardWidth + 'px';
-    // Place above tile, but shift down if not enough space
-    card.style.bottom = (window.innerHeight - top) + 'px';
-    card.style.top = 'auto';
+    card.style.left = left + 'px';
+
+    // Try above the tile first
+    const spaceAbove = rect.top - 12;
+    if (spaceAbove >= cardHeight) {
+        card.style.top = (rect.top - cardHeight - 12) + 'px';
+    } else {
+        // Not enough space above, place below the tile
+        card.style.top = (rect.bottom + 12) + 'px';
+    }
+    card.style.bottom = 'auto';
 
     document.getElementById('overlay').classList.add('active');
 
