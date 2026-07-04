@@ -62,6 +62,11 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-hum').textContent = parseFloat(latest[colMap.hum]).toFixed(1);
     document.getElementById('val-press').textContent = parseFloat(latest[colMap.press]).toFixed(1);
     document.getElementById('val-light').textContent = parseInt(latest[colMap.green]) || 0;
+    document.getElementById('val-red').textContent = parseInt(latest[colMap.red]) || 0;
+    document.getElementById('val-blue').textContent = parseInt(latest[colMap.blue]) || 0;
+    document.getElementById('val-green').textContent = parseInt(latest[colMap.green]) || 0;
+    document.getElementById('val-gas').textContent = parseInt(latest[colMap.gas]) || 0;
+    document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
 
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `Last refresh: ${now.toLocaleTimeString()}  ·  ${data.length} readings`;
@@ -95,7 +100,7 @@ function renderDashboard({ headers, data }) {
 
 function findColumns(headers) {
     // Flexible column matching - works with various header names
-    const map = { temp: 'temp', hum: 'hum', press: 'press', red: 'red', green: 'green', blue: 'blue' };
+    const map = { temp: 'temp', hum: 'hum', press: 'press', red: 'red', green: 'green', blue: 'blue', gas: 'gas', ir: 'ir' };
 
     for (const h of headers) {
         const hl = (typeof h === 'string' ? h : '').toLowerCase();
@@ -105,6 +110,8 @@ function findColumns(headers) {
         else if (hl === 'red' || hl === 'r') map.red = h;
         else if (hl === 'green' || hl === 'g') map.green = h;
         else if (hl === 'blue' || hl === 'b') map.blue = h;
+        else if (hl.includes('gas')) map.gas = h;
+        else if (hl === 'ir') map.ir = h;
     }
 
     return map;
