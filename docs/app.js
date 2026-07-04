@@ -241,7 +241,7 @@ function findColumns(headers) {
 
 // Auto-refresh every 2 minutes
 fetchData();
-setInterval(fetchData, 120000);
+setInterval(fetchData, 60000);
 
 // --- Expand tile on click ---
 let chartData = {}; // Store data for expanded view
