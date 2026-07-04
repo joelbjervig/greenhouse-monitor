@@ -41,7 +41,7 @@
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-radius: 22px;
+            border-radius: 40px;
             corner-shape: squircle;
             aspect-ratio: 1;
             padding: 8%;
@@ -90,7 +90,6 @@
 
         /* Overlay for expanded tile */
         .overlay {
-            display: none;
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.3);
@@ -99,21 +98,34 @@
             z-index: 100;
             padding: 24px;
             padding-top: env(safe-area-inset-top, 24px);
-            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
-        .overlay.active { display: flex; flex-direction: column; }
+        .overlay.active { opacity: 1; pointer-events: auto; }
         .overlay-card {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border-radius: 22px;
+            border-radius: 40px;
             corner-shape: squircle;
-            padding: 20px;
-            flex: 1;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            height: auto;
+            max-height: 70vh;
             display: flex;
             flex-direction: column;
-            max-height: 80vh;
-            margin: auto 0;
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .overlay.active .overlay-card {
+            transform: scale(1) translateY(0);
+            opacity: 1;
         }
         .overlay-card h2 {
             font-size: 1rem;
