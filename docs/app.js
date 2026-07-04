@@ -42,10 +42,14 @@ function renderDashboard({ headers, data }) {
     // Find column names (flexible matching)
     const colMap = findColumns(headers);
 
-    // Parse timestamps - use the first column as index or row number
+    // Parse timestamps from the first column (Apps Script writes ISO datetime)
     const timestamps = data.map((row, i) => {
-        if (row.timestamp) return new Date(row.timestamp);
-        if (row.date) return new Date(row.date);
+        // Try common timestamp column names
+        const ts = row[colMap.timestamp] || row[headers[0]];
+        if (ts) {
+            const d = new Date(ts);
+            if (!isNaN(d)) return d;
+        }
         return i;
     });
 
@@ -100,11 +104,12 @@ function renderDashboard({ headers, data }) {
 
 function findColumns(headers) {
     // Flexible column matching - works with various header names
-    const map = { temp: 'temp', hum: 'hum', press: 'press', red: 'red', green: 'green', blue: 'blue', gas: 'gas', ir: 'ir' };
+    const map = { timestamp: null, temp: 'temp', hum: 'hum', press: 'press', red: 'red', green: 'green', blue: 'blue', gas: 'gas', ir: 'ir' };
 
     for (const h of headers) {
         const hl = (typeof h === 'string' ? h : '').toLowerCase();
-        if (hl.includes('temp')) map.temp = h;
+        if (hl.includes('time') || hl.includes('date') || hl.includes('stamp')) map.timestamp = h;
+        else if (hl.includes('temp')) map.temp = h;
         else if (hl.includes('hum')) map.hum = h;
         else if (hl.includes('press')) map.press = h;
         else if (hl === 'red' || hl === 'r') map.red = h;
