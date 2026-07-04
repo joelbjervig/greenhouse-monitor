@@ -1,6 +1,69 @@
 // Apps Script Web App URL (same deployment, doGet returns JSON)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzSCfVOhfDwxb2ymJmoYF-PILGAPOAikMPT1LcVcRXTBFt_Jtv_-9pq1AXAeAg57uWy/exec';
 
+/*
+ * BH1749NUC Color Mapper
+ * Converts raw 16-bit sensor counts to displayable RGB.
+ * whiteRef should be recalibrated when the lighting environment changes —
+ * point sensor at white paper under neutral light and record R/G/B values.
+ */
+function createColorMapper(whiteRef, options = {}) {
+    const irCoeff = options.irCoeff ?? 0.15;
+    const gamma = options.gamma ?? 2.2;
+    const mode = options.mode ?? 'chroma';
+
+    function mapToRGB({ r, g, b, ir }) {
+        // Check for saturation
+        const saturated = r >= 65535 || g >= 65535 || b >= 65535;
+
+        // IR subtraction
+        let rC = Math.max(0, r - irCoeff * ir);
+        let gC = Math.max(0, g - irCoeff * ir);
+        let bC = Math.max(0, b - irCoeff * ir);
+
+        // White balance (divide by reference, guard zero)
+        rC = rC / (whiteRef.r || 1);
+        gC = gC / (whiteRef.g || 1);
+        bC = bC / (whiteRef.b || 1);
+
+        // Normalize
+        if (mode === 'chroma') {
+            const maxVal = Math.max(rC, gC, bC, 0.001);
+            rC /= maxVal;
+            gC /= maxVal;
+            bC /= maxVal;
+        } else {
+            // brightness mode — clamp to 1
+            rC = Math.min(rC, 1);
+            gC = Math.min(gC, 1);
+            bC = Math.min(bC, 1);
+        }
+
+        // Gamma correction (linear sensor → perceptual display)
+        rC = Math.pow(rC, 1 / gamma);
+        gC = Math.pow(gC, 1 / gamma);
+        bC = Math.pow(bC, 1 / gamma);
+
+        // Scale to 0-255
+        return {
+            r: Math.round(Math.min(255, Math.max(0, rC * 255))),
+            g: Math.round(Math.min(255, Math.max(0, gC * 255))),
+            b: Math.round(Math.min(255, Math.max(0, bC * 255))),
+            saturated,
+        };
+    }
+
+    return { mapToRGB };
+}
+
+function toCssColor({ r, g, b }) {
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+// White balance reference — captured under neutral daylight on white paper.
+// Recalibrate by reading R/G/B from Google Sheet when sensor faces a white target.
+const colorMapper = createColorMapper({ r: 120, g: 250, b: 80 });
+
 const plotLayout = {
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
@@ -71,29 +134,22 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-light').textContent = parseInt(latest[colMap.green]) || 0;
     document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
 
-    // Set page background gradient based on current RGB sensor values
-    // Normalize by max channel to preserve color hue, use total for brightness
+    // Set page background gradient using calibrated color mapping
     const rVal = parseInt(latest[colMap.red]) || 0;
     const gVal = parseInt(latest[colMap.green]) || 0;
     const bVal = parseInt(latest[colMap.blue]) || 0;
-    const maxChannel = Math.max(rVal, gVal, bVal, 1);
-    // Color ratios relative to dominant channel (preserves actual hue)
-    // e.g. red light: R=100,G=10,B=5 → ratios 1.0, 0.1, 0.05 → clearly red
-    const rRatio = rVal / maxChannel;
-    const gRatio = gVal / maxChannel;
-    const bRatio = bVal / maxChannel;
-    // Brightness from total intensity vs max observed in dataset
+    const irVal = parseInt(latest[colMap.ir]) || 0;
+    const mappedColor = colorMapper.mapToRGB({ r: rVal, g: gVal, b: bVal, ir: irVal });
+    console.log('Color sensor raw:', { r: rVal, g: gVal, b: bVal, ir: irVal }, '→ mapped:', mappedColor);
+    // Brightness scaling: dim at night, brighter in day
     const totalNow = rVal + gVal + bVal;
     const maxTotal = Math.max(...red.map((r, i) => r + green[i] + blue[i]), 1);
     const intensityRatio = Math.min(totalNow / maxTotal, 1);
-    // Map: color from ratios, brightness from intensity
-    const maxBg = 140;
-    const minBg = 25;
-    const bright = minBg + intensityRatio * (maxBg - minBg);
-    const rBg = Math.round(rRatio * bright);
-    const gBg = Math.round(gRatio * bright);
-    const bBg = Math.round(bRatio * bright);
-    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 15}, ${gBg + 15}, ${bBg + 15}), rgb(${Math.round(rBg * 0.75)}, ${Math.round(gBg * 0.75)}, ${Math.round(bBg * 0.75)}))`;
+    const brightScale = 0.3 + intensityRatio * 0.7; // 30% min brightness
+    const rBg = Math.round(mappedColor.r * brightScale);
+    const gBg = Math.round(mappedColor.g * brightScale);
+    const bBg = Math.round(mappedColor.b * brightScale);
+    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg}, ${gBg}, ${bBg}), rgb(${Math.round(rBg * 0.4)}, ${Math.round(gBg * 0.4)}, ${Math.round(bBg * 0.4)}))`;
     document.body.style.minHeight = '100vh';
 
     // Set text color based on background brightness (perceptual luminance)
