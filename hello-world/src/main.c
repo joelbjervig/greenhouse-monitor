@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/watchdog.h>
 #include <zephyr/logging/log.h>
 #include <modem/lte_lc.h>
 #include <modem/nrf_modem_lib.h>
@@ -13,9 +14,12 @@ LOG_MODULE_REGISTER(greenhouse, LOG_LEVEL_INF);
 #define SAMPLE_INTERVAL_MS 5000
 #define CLOUD_SEND_EVERY  12  /* Send to cloud every 12 samples (60s) */
 #define LTE_RECONNECT_DELAY_MS 10000  /* Wait 10s before reconnect attempt */
+#define WDT_TIMEOUT_MS 120000  /* 2 minutes — reset if stuck */
 
 static const struct device *bme680;
 static const struct device *bh1749;
+static const struct device *wdt;
+static int wdt_channel_id;
 static volatile bool lte_connected;
 
 K_SEM_DEFINE(lte_connected_sem, 0, 1);
@@ -183,9 +187,33 @@ int main(void)
 	printk("  BH1749 (light): %s\n", device_is_ready(bh1749) ? "ready" : "NOT FOUND");
 	printk("\n");
 
+	/* Initialize hardware watchdog — resets device if main loop stalls */
+	wdt = DEVICE_DT_GET(DT_NODELABEL(wdt0));
+	if (device_is_ready(wdt)) {
+		struct wdt_timeout_cfg wdt_cfg = {
+			.window.min = 0,
+			.window.max = WDT_TIMEOUT_MS,
+			.callback = NULL, /* System reset on timeout */
+			.flags = WDT_FLAG_RESET_SOC,
+		};
+		wdt_channel_id = wdt_install_timeout(wdt, &wdt_cfg);
+		if (wdt_channel_id >= 0) {
+			wdt_setup(wdt, WDT_OPT_PAUSE_HALTED_BY_DBG);
+			LOG_INF("Watchdog started (%d s timeout)", WDT_TIMEOUT_MS / 1000);
+		} else {
+			LOG_WRN("Watchdog install failed: %d", wdt_channel_id);
+		}
+	} else {
+		LOG_WRN("Watchdog device not ready");
+	}
+
 	/* Main sensor loop — CSV output */
 	printk("uptime_ms,sample,temp_c,humidity_pct,pressure_kpa,gas_ohm,red,green,blue,ir\n");
 	while (1) {
+		/* Feed watchdog — proves main loop is alive */
+		if (wdt_channel_id >= 0 && device_is_ready(wdt)) {
+			wdt_feed(wdt, wdt_channel_id);
+		}
 		sample++;
 		read_sensors_csv(sample);
 		k_msleep(SAMPLE_INTERVAL_MS);

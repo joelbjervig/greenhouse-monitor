@@ -108,10 +108,12 @@ int cloud_send_sensor_data(int temp_i, int temp_f,
 		return -errno;
 	}
 
-	/* Set socket timeouts (30s send, 30s receive) */
+	/* Set socket timeouts BEFORE connect — on nRF9160 modem, SO_RCVTIMEO
+	 * also applies to the TLS handshake in connect(). This prevents
+	 * indefinite blocking if the server is unreachable. */
 	struct timeval timeout = { .tv_sec = 30, .tv_usec = 0 };
-	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 
 	/* Set TLS options */
 	sec_tag_t sec_tag_list[] = { TLS_SEC_TAG };
