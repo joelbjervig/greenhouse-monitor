@@ -71,6 +71,18 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-light').textContent = parseInt(latest[colMap.green]) || 0;
     document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
 
+    // Set page background gradient based on current RGB sensor values
+    const rVal = Math.min(parseInt(latest[colMap.red]) || 0, 255);
+    const gVal = Math.min(parseInt(latest[colMap.green]) || 0, 255);
+    const bVal = Math.min(parseInt(latest[colMap.blue]) || 0, 255);
+    // Scale for visibility (sensor values are often low), keep it subtle
+    const scale = 0.6;
+    const rBg = Math.min(Math.round(rVal * scale), 60);
+    const gBg = Math.min(Math.round(gVal * scale), 60);
+    const bBg = Math.min(Math.round(bVal * scale), 60);
+    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 15}, ${gBg + 15}, ${bBg + 15}), rgb(${Math.round(rBg * 0.4)}, ${Math.round(gBg * 0.4)}, ${Math.round(bBg * 0.4)}))`;
+    document.body.style.minHeight = '100vh';
+
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `Last refresh: ${now.toLocaleTimeString()}  ·  ${data.length} readings`;
     document.getElementById('lastUpdate').classList.remove('error');
