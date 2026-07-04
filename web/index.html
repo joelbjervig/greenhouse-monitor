@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Greenhouse Monitor</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 16px;
+            padding-top: env(safe-area-inset-top, 16px);
+        }
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+            color: #4ecca3;
+        }
+        .subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+        .card .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #4ecca3;
+        }
+        .card .label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        .plot-container {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 16px;
+        }
+        .plot-container h2 {
+            font-size: 0.9rem;
+            padding: 8px 8px 0;
+            color: #ccc;
+        }
+        .status {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .error { color: #e74c3c; }
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #4ecca3;
+            border: none;
+            color: #1a1a2e;
+            font-size: 1.4rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(78, 204, 163, 0.3);
+        }
+        .refresh-btn:active { transform: scale(0.9); }
+    </style>
+</head>
+<body>
+    <h1>🌱 Greenhouse</h1>
+    <div class="subtitle" id="lastUpdate">Loading...</div>
+
+    <div class="cards" id="cards">
+        <div class="card"><div class="value" id="val-temp">--</div><div class="label">Temperature °C</div></div>
+        <div class="card"><div class="value" id="val-hum">--</div><div class="label">Humidity %</div></div>
+        <div class="card"><div class="value" id="val-press">--</div><div class="label">Pressure kPa</div></div>
+        <div class="card"><div class="value" id="val-light">--</div><div class="label">Light (Green)</div></div>
+    </div>
+
+    <div class="plot-container">
+        <h2>Temperature & Humidity</h2>
+        <div id="plot-temp-hum"></div>
+    </div>
+
+    <div class="plot-container">
+        <h2>Pressure</h2>
+        <div id="plot-press"></div>
+    </div>
+
+    <div class="plot-container">
+        <h2>Light (RGB)</h2>
+        <div id="plot-light"></div>
+    </div>
+
+    <button class="refresh-btn" onclick="fetchData()">↻</button>
+
+    <script src="app.js"></script>
+</body>
+</html>

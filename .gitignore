@@ -1,0 +1,17 @@
+# Firmware build output
+hello-world/build/
+
+# Modem firmware images (large binaries, downloadable from Nordic)
+thingy91_mfw-*/
+
+# Large binaries
+*.pdf
+*.hex
+*.bin
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
