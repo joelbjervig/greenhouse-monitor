@@ -145,7 +145,7 @@ function renderDashboard({ headers, data }) {
     const totalNow = rVal + gVal + bVal;
     const maxTotal = Math.max(...red.map((r, i) => r + green[i] + blue[i]), 1);
     const intensityRatio = Math.min(totalNow / maxTotal, 1);
-    const brightScale = 0.3 + intensityRatio * 0.7; // 30% min brightness
+    const brightScale = 0.6 + intensityRatio * 0.7; // 30% min brightness
     const rBg = Math.round(mappedColor.r * brightScale);
     const gBg = Math.round(mappedColor.g * brightScale);
     const bBg = Math.round(mappedColor.b * brightScale);
