@@ -62,7 +62,7 @@ function toCssColor({ r, g, b }) {
 
 // White balance reference — calibrated with white paper under daylight (2026-07-04).
 // Recalibrate by reading R/G/B from Google Sheet when sensor faces a white target.
-const colorMapper = createColorMapper({ r: 5517, g: 9301, b: 8720 });
+const colorMapper = createColorMapper({ r: 946, g: 1617, b: 1881 });
 
 const plotLayout = {
     paper_bgcolor: 'transparent',
