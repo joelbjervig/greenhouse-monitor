@@ -95,8 +95,8 @@ function renderDashboard({ headers, data }) {
 
     // Set text color based on background brightness (perceptual luminance)
     const brightness = 0.299 * (rBg + 20) + 0.587 * (gBg + 20) + 0.114 * (bBg + 20);
-    const textColor = brightness > 70 ? '#111' : '#eee';
-    const valueColor = brightness > 70 ? '#000' : '#fff';
+    const textColor = brightness > 128 ? '#111' : '#eee';
+    const valueColor = brightness > 128 ? '#000' : '#fff';
     document.body.style.color = textColor;
     document.querySelectorAll('.plot-tile .latest').forEach(el => el.style.color = valueColor);
     document.querySelectorAll('.plot-tile h2').forEach(el => el.style.color = textColor);
