@@ -93,7 +93,7 @@ function renderDashboard({ headers, data }) {
     const rBg = Math.round(rRatio * bright);
     const gBg = Math.round(gRatio * bright);
     const bBg = Math.round(bRatio * bright);
-    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 15}, ${gBg + 15}, ${bBg + 15}), rgb(${Math.round(rBg * 0.3)}, ${Math.round(gBg * 0.3)}, ${Math.round(bBg * 0.3)}))`;
+    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 15}, ${gBg + 15}, ${bBg + 15}), rgb(${Math.round(rBg * 0.75)}, ${Math.round(gBg * 0.75)}, ${Math.round(bBg * 0.75)}))`;
     document.body.style.minHeight = '100vh';
 
     // Set text color based on background brightness (perceptual luminance)
