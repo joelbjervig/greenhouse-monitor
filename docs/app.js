@@ -201,10 +201,18 @@ function openOverlay(id, tileEl) {
     // Try above the tile first
     const spaceAbove = rect.top - 12;
     if (spaceAbove >= cardHeight) {
-        card.style.top = (rect.top - cardHeight - 12) + 'px';
+        let top = rect.top - cardHeight - 12;
+        top = Math.max(8, top);
+        card.style.top = top + 'px';
     } else {
         // Not enough space above, place below the tile
-        card.style.top = (rect.bottom + 12) + 'px';
+        let top = rect.bottom + 12;
+        // Ensure it doesn't go below the screen
+        if (top + cardHeight > window.innerHeight - 8) {
+            top = window.innerHeight - cardHeight - 8;
+        }
+        top = Math.max(8, top);
+        card.style.top = top + 'px';
     }
     card.style.bottom = 'auto';
 
