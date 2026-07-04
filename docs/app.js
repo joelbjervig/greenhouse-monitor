@@ -4,10 +4,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzSCfVOhfDwxb2ymJmoYF-P
 const plotLayout = {
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
-    margin: { l: 4, r: 4, t: 4, b: 20 },
-    font: { color: '#888', size: 8 },
-    xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M', showgrid: false },
-    yaxis: { gridcolor: '#2a2a4a', showgrid: false },
+    margin: { l: 32, r: 8, t: 4, b: 24 },
+    font: { color: '#aaa', size: 10 },
+    xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M', showgrid: false, tickfont: { size: 9 } },
+    yaxis: { gridcolor: '#2a2a4a', showgrid: false, tickfont: { size: 9 } },
     showlegend: false,
 };
 
