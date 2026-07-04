@@ -72,28 +72,31 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
 
     // Set page background gradient based on current RGB sensor values
-    // BH1749 outputs 16-bit counts; normalize using max observed in dataset
+    // BH1749 outputs raw counts — normalize by total intensity to get color ratio,
+    // then scale brightness by overall light level
     const rVal = parseInt(latest[colMap.red]) || 0;
     const gVal = parseInt(latest[colMap.green]) || 0;
     const bVal = parseInt(latest[colMap.blue]) || 0;
-    const maxR = Math.max(...red, 1);
-    const maxG = Math.max(...green, 1);
-    const maxB = Math.max(...blue, 1);
-    // Normalize to 0-1 range based on observed max, then scale to subtle background
-    const rNorm = rVal / maxR;
-    const gNorm = gVal / maxG;
-    const bNorm = bVal / maxB;
-    const maxBrightness = 70; // cap so it's not blinding
-    const rBg = Math.round(rNorm * maxBrightness);
-    const gBg = Math.round(gNorm * maxBrightness);
-    const bBg = Math.round(bNorm * maxBrightness);
-    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 10}, ${gBg + 10}, ${bBg + 10}), rgb(${Math.round(rBg * 0.3)}, ${Math.round(gBg * 0.3)}, ${Math.round(bBg * 0.3)}))`;
+    const total = rVal + gVal + bVal || 1;
+    // Color ratios (what color the light actually is)
+    const rRatio = rVal / total;
+    const gRatio = gVal / total;
+    const bRatio = bVal / total;
+    // Brightness based on how much light there is (log scale for wide range)
+    const intensity = Math.min(Math.log(total + 1) / Math.log(65535), 1);
+    const maxBg = 120;
+    const baseBg = 15;
+    const bright = baseBg + intensity * maxBg;
+    const rBg = Math.round(rRatio * bright);
+    const gBg = Math.round(gRatio * bright);
+    const bBg = Math.round(bRatio * bright);
+    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 10}, ${gBg + 10}, ${bBg + 10}), rgb(${Math.max(rBg - 10, 0)}, ${Math.max(gBg - 10, 0)}, ${Math.max(bBg - 10, 0)}))`;
     document.body.style.minHeight = '100vh';
 
     // Set text color based on background brightness (perceptual luminance)
-    const brightness = 0.299 * (rBg + 10) + 0.587 * (gBg + 10) + 0.114 * (bBg + 10);
-    const textColor = brightness > 40 ? '#111' : '#eee';
-    const valueColor = brightness > 40 ? '#000' : '#fff';
+    const brightness = 0.299 * (rBg + 20) + 0.587 * (gBg + 20) + 0.114 * (bBg + 20);
+    const textColor = brightness > 50 ? '#111' : '#eee';
+    const valueColor = brightness > 50 ? '#000' : '#fff';
     document.body.style.color = textColor;
     document.querySelectorAll('.plot-tile .latest').forEach(el => el.style.color = valueColor);
     document.querySelectorAll('.plot-tile h2').forEach(el => el.style.color = textColor);
@@ -176,7 +179,7 @@ function openOverlay(id) {
     const expandedLayout = {
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        margin: { l: 40, r: 16, t: 8, b: 36 },
+        margin: { l: 30, r: 30, t: 8, b: 36 },
         font: { color: '#aaa', size: 11 },
         xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M', tickfont: { size: 10 } },
         yaxis: { gridcolor: '#2a2a4a', tickfont: { size: 10 } },
