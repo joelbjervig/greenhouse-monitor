@@ -158,15 +158,20 @@
         }
         .overlay-close {
             align-self: flex-end;
+            flex-shrink: 0;
             background: rgba(255,255,255,0.1);
             border: none;
             color: #eee;
             width: 32px;
             height: 32px;
+            min-width: 32px;
             border-radius: 50%;
             font-size: 1rem;
             cursor: pointer;
             margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
