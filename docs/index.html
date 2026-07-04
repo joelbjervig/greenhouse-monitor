@@ -25,7 +25,6 @@
         h1 {
             font-size: 1.4rem;
             margin-bottom: 4px;
-            color: #4ecca3;
         }
         .subtitle {
             font-size: 0.8rem;
@@ -39,7 +38,9 @@
             margin-bottom: 20px;
         }
         .plot-tile {
-            background: #16213e;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-radius: 22px;
             corner-shape: squircle;
             aspect-ratio: 1;
@@ -62,7 +63,6 @@
         .plot-tile .latest {
             font-size: 1.1rem;
             font-weight: 700;
-            color: #4ecca3;
             margin-bottom: 2px;
         }
         .status {
@@ -78,12 +78,12 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background: #4ecca3;
+            background: rgba(255,255,255,0.15);
             border: none;
-            color: #1a1a2e;
+            color: #fff;
             font-size: 1.4rem;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(78, 204, 163, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             z-index: 10;
         }
         .refresh-btn:active { transform: scale(0.9); }
@@ -103,7 +103,9 @@
         }
         .overlay.active { display: flex; flex-direction: column; }
         .overlay-card {
-            background: #16213e;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-radius: 22px;
             corner-shape: squircle;
             padding: 20px;
@@ -123,7 +125,7 @@
         .overlay-card .latest {
             font-size: 2rem;
             font-weight: 700;
-            color: #4ecca3;
+            color: #fff;
             margin-bottom: 12px;
         }
         .overlay-card .plot-area-expanded {

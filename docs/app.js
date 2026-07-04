@@ -72,16 +72,31 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
 
     // Set page background gradient based on current RGB sensor values
-    const rVal = Math.min(parseInt(latest[colMap.red]) || 0, 255);
-    const gVal = Math.min(parseInt(latest[colMap.green]) || 0, 255);
-    const bVal = Math.min(parseInt(latest[colMap.blue]) || 0, 255);
-    // Scale for visibility (sensor values are often low), keep it subtle
-    const scale = 0.6;
-    const rBg = Math.min(Math.round(rVal * scale), 60);
-    const gBg = Math.min(Math.round(gVal * scale), 60);
-    const bBg = Math.min(Math.round(bVal * scale), 60);
-    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 15}, ${gBg + 15}, ${bBg + 15}), rgb(${Math.round(rBg * 0.4)}, ${Math.round(gBg * 0.4)}, ${Math.round(bBg * 0.4)}))`;
+    // BH1749 outputs 16-bit counts; normalize using max observed in dataset
+    const rVal = parseInt(latest[colMap.red]) || 0;
+    const gVal = parseInt(latest[colMap.green]) || 0;
+    const bVal = parseInt(latest[colMap.blue]) || 0;
+    const maxR = Math.max(...red, 1);
+    const maxG = Math.max(...green, 1);
+    const maxB = Math.max(...blue, 1);
+    // Normalize to 0-1 range based on observed max, then scale to subtle background
+    const rNorm = rVal / maxR;
+    const gNorm = gVal / maxG;
+    const bNorm = bVal / maxB;
+    const maxBrightness = 70; // cap so it's not blinding
+    const rBg = Math.round(rNorm * maxBrightness);
+    const gBg = Math.round(gNorm * maxBrightness);
+    const bBg = Math.round(bNorm * maxBrightness);
+    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg + 10}, ${gBg + 10}, ${bBg + 10}), rgb(${Math.round(rBg * 0.3)}, ${Math.round(gBg * 0.3)}, ${Math.round(bBg * 0.3)}))`;
     document.body.style.minHeight = '100vh';
+
+    // Set text color based on background brightness (perceptual luminance)
+    const brightness = 0.299 * (rBg + 10) + 0.587 * (gBg + 10) + 0.114 * (bBg + 10);
+    const textColor = brightness > 40 ? '#111' : '#eee';
+    const valueColor = brightness > 40 ? '#000' : '#fff';
+    document.body.style.color = textColor;
+    document.querySelectorAll('.plot-tile .latest').forEach(el => el.style.color = valueColor);
+    document.querySelectorAll('.plot-tile h2').forEach(el => el.style.color = textColor);
 
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `Last refresh: ${now.toLocaleTimeString()}  ·  ${data.length} readings`;
