@@ -4,18 +4,18 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzSCfVOhfDwxb2ymJmoYF-P
 const plotLayout = {
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
-    margin: { l: 40, r: 16, t: 8, b: 32 },
-    font: { color: '#aaa', size: 10 },
-    xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M' },
-    yaxis: { gridcolor: '#2a2a4a' },
-    legend: { orientation: 'h', y: -0.2 },
-    height: 220,
+    margin: { l: 4, r: 4, t: 4, b: 20 },
+    font: { color: '#888', size: 8 },
+    xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M', showgrid: false },
+    yaxis: { gridcolor: '#2a2a4a', showgrid: false },
+    showlegend: false,
 };
 
 const plotConfig = {
     responsive: true,
     displayModeBar: false,
-    scrollZoom: true,
+    scrollZoom: false,
+    staticPlot: true,
 };
 
 async function fetchData() {
@@ -59,47 +59,35 @@ function renderDashboard({ headers, data }) {
     const red = data.map(r => parseInt(r[colMap.red]) || 0);
     const green = data.map(r => parseInt(r[colMap.green]) || 0);
     const blue = data.map(r => parseInt(r[colMap.blue]) || 0);
+    const gas = data.map(r => parseInt(r[colMap.gas]) || 0);
+    const ir = data.map(r => parseInt(r[colMap.ir]) || 0);
 
-    // Update cards with latest values
+    // Update latest values
     const latest = data[data.length - 1];
-    document.getElementById('val-temp').textContent = parseFloat(latest[colMap.temp]).toFixed(1);
-    document.getElementById('val-hum').textContent = parseFloat(latest[colMap.hum]).toFixed(1);
-    document.getElementById('val-press').textContent = parseFloat(latest[colMap.press]).toFixed(1);
+    document.getElementById('val-temp').textContent = parseFloat(latest[colMap.temp]).toFixed(1) + '°C';
+    document.getElementById('val-hum').textContent = parseFloat(latest[colMap.hum]).toFixed(1) + '%';
+    document.getElementById('val-press').textContent = parseFloat(latest[colMap.press]).toFixed(1) + ' kPa';
+    document.getElementById('val-gas').textContent = (parseInt(latest[colMap.gas]) || 0) + ' Ω';
     document.getElementById('val-light').textContent = parseInt(latest[colMap.green]) || 0;
-    document.getElementById('val-red').textContent = parseInt(latest[colMap.red]) || 0;
-    document.getElementById('val-blue').textContent = parseInt(latest[colMap.blue]) || 0;
-    document.getElementById('val-green').textContent = parseInt(latest[colMap.green]) || 0;
-    document.getElementById('val-gas').textContent = parseInt(latest[colMap.gas]) || 0;
     document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
 
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `Last refresh: ${now.toLocaleTimeString()}  ·  ${data.length} readings`;
     document.getElementById('lastUpdate').classList.remove('error');
 
-    // Temperature & Humidity plot
-    Plotly.react('plot-temp-hum', [
-        { x: timestamps, y: temp, name: 'Temp °C', type: 'scatter', line: { color: '#e74c3c', width: 2 } },
-        { x: timestamps, y: hum, name: 'Humidity %', type: 'scatter', yaxis: 'y2', line: { color: '#3498db', width: 2 } },
-    ], {
-        ...plotLayout,
-        yaxis: { ...plotLayout.yaxis, title: '°C' },
-        yaxis2: { overlaying: 'y', side: 'right', gridcolor: '#2a2a4a', title: '%' },
-    }, plotConfig);
+    // Render individual tile plots
+    const tileTrace = (y, color) => [{ x: timestamps, y, type: 'scatter', mode: 'lines', line: { color, width: 1.5 }, fill: 'tozeroy', fillcolor: color + '18' }];
 
-    // Pressure plot
-    Plotly.react('plot-press', [
-        { x: timestamps, y: press, name: 'Pressure', type: 'scatter', line: { color: '#9b59b6', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(155,89,182,0.1)' },
-    ], {
-        ...plotLayout,
-        yaxis: { ...plotLayout.yaxis, title: 'kPa' },
-    }, plotConfig);
-
-    // Light plot
+    Plotly.react('plot-temp', tileTrace(temp, '#e74c3c'), plotLayout, plotConfig);
+    Plotly.react('plot-hum', tileTrace(hum, '#3498db'), plotLayout, plotConfig);
+    Plotly.react('plot-press', tileTrace(press, '#9b59b6'), plotLayout, plotConfig);
+    Plotly.react('plot-gas', tileTrace(gas, '#f39c12'), plotLayout, plotConfig);
     Plotly.react('plot-light', [
-        { x: timestamps, y: red, name: 'Red', type: 'scatter', line: { color: '#e74c3c', width: 1.5 } },
-        { x: timestamps, y: green, name: 'Green', type: 'scatter', line: { color: '#2ecc71', width: 1.5 } },
-        { x: timestamps, y: blue, name: 'Blue', type: 'scatter', line: { color: '#3498db', width: 1.5 } },
+        { x: timestamps, y: red, type: 'scatter', mode: 'lines', line: { color: '#e74c3c', width: 1 } },
+        { x: timestamps, y: green, type: 'scatter', mode: 'lines', line: { color: '#2ecc71', width: 1 } },
+        { x: timestamps, y: blue, type: 'scatter', mode: 'lines', line: { color: '#3498db', width: 1 } },
     ], plotLayout, plotConfig);
+    Plotly.react('plot-ir', tileTrace(ir, '#8e44ad'), plotLayout, plotConfig);
 }
 
 function findColumns(headers) {
