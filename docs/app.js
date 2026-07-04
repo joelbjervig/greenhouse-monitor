@@ -192,28 +192,28 @@ function openOverlay(id, tileEl) {
     const card = document.querySelector('.overlay-card');
     const rect = tileEl.getBoundingClientRect();
     const cardWidth = Math.min(window.innerWidth * 0.9, 500);
-    const cardHeight = 280;
+    const maxCardHeight = Math.min(300, window.innerHeight * 0.6);
+    card.style.maxHeight = maxCardHeight + 'px';
     let left = rect.left + rect.width / 2 - cardWidth / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - cardWidth - 8));
     card.style.width = cardWidth + 'px';
     card.style.left = left + 'px';
 
-    // Try above the tile first
-    const spaceAbove = rect.top - 12;
-    if (spaceAbove >= cardHeight) {
-        let top = rect.top - cardHeight - 12;
-        top = Math.max(8, top);
-        card.style.top = top + 'px';
+    // Try above the tile first, fall back to below, always clamp within screen
+    const spaceAbove = rect.top - 16;
+    const spaceBelow = window.innerHeight - rect.bottom - 16;
+    let top;
+    if (spaceAbove >= maxCardHeight) {
+        top = rect.top - maxCardHeight - 12;
+    } else if (spaceBelow >= maxCardHeight) {
+        top = rect.bottom + 12;
     } else {
-        // Not enough space above, place below the tile
-        let top = rect.bottom + 12;
-        // Ensure it doesn't go below the screen
-        if (top + cardHeight > window.innerHeight - 8) {
-            top = window.innerHeight - cardHeight - 8;
-        }
-        top = Math.max(8, top);
-        card.style.top = top + 'px';
+        // Center vertically if neither fits
+        top = Math.round((window.innerHeight - maxCardHeight) / 2);
     }
+    // Final clamp: never outside viewport
+    top = Math.max(8, Math.min(top, window.innerHeight - maxCardHeight - 8));
+    card.style.top = top + 'px';
     card.style.bottom = 'auto';
 
     document.getElementById('overlay').classList.add('active');
