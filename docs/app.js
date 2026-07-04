@@ -5,9 +5,9 @@ const plotLayout = {
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
     margin: { l: 32, r: 8, t: 4, b: 24 },
-    font: { color: '#aaa', size: 10 },
-    xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M', showgrid: false, tickfont: { size: 9 } },
-    yaxis: { gridcolor: '#2a2a4a', showgrid: false, tickfont: { size: 9 } },
+    font: { color: 'rgba(255,255,255,0.6)', size: 10 },
+    xaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickformat: '%H:%M', showgrid: false, tickfont: { size: 9, color: 'rgba(255,255,255,0.5)' } },
+    yaxis: { gridcolor: 'rgba(255,255,255,0.1)', showgrid: false, tickfont: { size: 9, color: 'rgba(255,255,255,0.5)' } },
     showlegend: false,
 };
 
@@ -180,11 +180,11 @@ function openOverlay(id) {
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
         margin: { l: 30, r: 30, t: 8, b: 36 },
-        font: { color: '#aaa', size: 11 },
-        xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M', tickfont: { size: 10 } },
-        yaxis: { gridcolor: '#2a2a4a', tickfont: { size: 10 } },
+        font: { color: 'rgba(255,255,255,0.7)', size: 11 },
+        xaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickformat: '%H:%M', tickfont: { size: 10, color: 'rgba(255,255,255,0.6)' } },
+        yaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickfont: { size: 10, color: 'rgba(255,255,255,0.6)' } },
         showlegend: info.traces.length > 1,
-        legend: { orientation: 'h', y: -0.15, font: { color: '#aaa' } },
+        legend: { orientation: 'h', y: -0.15, font: { color: 'rgba(255,255,255,0.7)' } },
     };
 
     const expandedConfig = {
