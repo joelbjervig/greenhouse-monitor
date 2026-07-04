@@ -201,33 +201,21 @@ function openOverlay(id, tileEl) {
     document.getElementById('overlay-title').textContent = info.title;
     document.getElementById('overlay-value').textContent = info.value;
 
-    // Position card on top of (above) the tile, not covering it
+    // Simply center the card on screen
     const card = document.querySelector('.overlay-card');
-    const rect = tileEl.getBoundingClientRect();
-    const cardWidth = Math.min(window.innerWidth * 0.9, 500);
-    const cardHeight = Math.min(360, window.innerHeight * 0.65);
-    card.style.maxHeight = 'none';
-    card.style.height = cardHeight + 'px';
-    let left = rect.left + rect.width / 2 - cardWidth / 2;
-    left = Math.max(8, Math.min(left, window.innerWidth - cardWidth - 8));
-    card.style.width = cardWidth + 'px';
-    card.style.left = left + 'px';
+    card.style.width = '85%';
+    card.style.maxWidth = '500px';
+    card.style.height = '55%';
+    card.style.left = '50%';
+    card.style.top = '50%';
+    card.style.transform = 'translate(-50%, -50%) scale(0.9)';
+    card.style.bottom = 'auto';
 
-    // Try above the tile first, fall back to below, always clamp within screen
-    const spaceAbove = rect.top - 16;
-    const spaceBelow = window.innerHeight - rect.bottom - 16;
-    let top;
-    if (spaceAbove >= cardHeight) {
-        top = rect.top - cardHeight - 12;
-    } else if (spaceBelow >= cardHeight) {
-        top = rect.bottom + 12;
-    } else {
-        // Center vertically if neither fits
-        top = Math.round((window.innerHeight - cardHeight) / 2);
-    }
-    // Final clamp: never outside viewport
-    top = Math.max(8, Math.min(top, window.innerHeight - cardHeight - 8));
-    card.style.top = top + 'px';
+    document.getElementById('overlay').classList.add('active');
+    // Trigger scale animation
+    requestAnimationFrame(() => {
+        card.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
     card.style.bottom = 'auto';
 
     document.getElementById('overlay').classList.add('active');
@@ -256,6 +244,8 @@ function openOverlay(id, tileEl) {
 
 function closeOverlay(event) {
     if (event && event.target !== event.currentTarget) return;
+    const card = document.querySelector('.overlay-card');
+    card.style.transform = 'translate(-50%, -50%) scale(0.9)';
     document.getElementById('overlay').classList.remove('active');
     Plotly.purge('plot-expanded');
 }
