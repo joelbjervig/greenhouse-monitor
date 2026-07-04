@@ -88,6 +88,23 @@ function renderDashboard({ headers, data }) {
         { x: timestamps, y: blue, type: 'scatter', mode: 'lines', line: { color: '#3498db', width: 1 } },
     ], plotLayout, plotConfig);
     Plotly.react('plot-ir', tileTrace(ir, '#8e44ad'), plotLayout, plotConfig);
+
+    // Store data for expanded interactive view
+    storeChartData('plot-temp', 'Temperature', parseFloat(latest[colMap.temp]).toFixed(1) + '°C',
+        [{ x: timestamps, y: temp, type: 'scatter', mode: 'lines', line: { color: '#e74c3c', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(231,76,60,0.1)' }]);
+    storeChartData('plot-hum', 'Humidity', parseFloat(latest[colMap.hum]).toFixed(1) + '%',
+        [{ x: timestamps, y: hum, type: 'scatter', mode: 'lines', line: { color: '#3498db', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(52,152,219,0.1)' }]);
+    storeChartData('plot-press', 'Pressure', parseFloat(latest[colMap.press]).toFixed(1) + ' kPa',
+        [{ x: timestamps, y: press, type: 'scatter', mode: 'lines', line: { color: '#9b59b6', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(155,89,182,0.1)' }]);
+    storeChartData('plot-gas', 'Gas Resistance', (parseInt(latest[colMap.gas]) || 0) + ' Ω',
+        [{ x: timestamps, y: gas, type: 'scatter', mode: 'lines', line: { color: '#f39c12', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(243,156,18,0.1)' }]);
+    storeChartData('plot-light', 'Light (RGB)', 'R:' + (parseInt(latest[colMap.red])||0) + ' G:' + (parseInt(latest[colMap.green])||0) + ' B:' + (parseInt(latest[colMap.blue])||0), [
+        { x: timestamps, y: red, name: 'Red', type: 'scatter', mode: 'lines', line: { color: '#e74c3c', width: 2 } },
+        { x: timestamps, y: green, name: 'Green', type: 'scatter', mode: 'lines', line: { color: '#2ecc71', width: 2 } },
+        { x: timestamps, y: blue, name: 'Blue', type: 'scatter', mode: 'lines', line: { color: '#3498db', width: 2 } },
+    ]);
+    storeChartData('plot-ir', 'Infrared', (parseInt(latest[colMap.ir]) || 0).toString(),
+        [{ x: timestamps, y: ir, type: 'scatter', mode: 'lines', line: { color: '#8e44ad', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(142,68,173,0.1)' }]);
 }
 
 function findColumns(headers) {
@@ -113,6 +130,58 @@ function findColumns(headers) {
 // Auto-refresh every 2 minutes
 fetchData();
 setInterval(fetchData, 120000);
+
+// --- Expand tile on click ---
+let chartData = {}; // Store data for expanded view
+
+function storeChartData(id, title, value, traces) {
+    chartData[id] = { title, value, traces };
+}
+
+function openOverlay(id) {
+    const info = chartData[id];
+    if (!info) return;
+
+    document.getElementById('overlay-title').textContent = info.title;
+    document.getElementById('overlay-value').textContent = info.value;
+    document.getElementById('overlay').classList.add('active');
+
+    const expandedLayout = {
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        margin: { l: 40, r: 16, t: 8, b: 36 },
+        font: { color: '#aaa', size: 11 },
+        xaxis: { gridcolor: '#2a2a4a', tickformat: '%H:%M', tickfont: { size: 10 } },
+        yaxis: { gridcolor: '#2a2a4a', tickfont: { size: 10 } },
+        showlegend: info.traces.length > 1,
+        legend: { orientation: 'h', y: -0.15, font: { color: '#aaa' } },
+    };
+
+    const expandedConfig = {
+        responsive: true,
+        displayModeBar: false,
+        scrollZoom: true,
+    };
+
+    setTimeout(() => {
+        Plotly.react('plot-expanded', info.traces, expandedLayout, expandedConfig);
+    }, 50);
+}
+
+function closeOverlay(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('overlay').classList.remove('active');
+    Plotly.purge('plot-expanded');
+}
+
+// Add click listeners to tiles
+document.querySelectorAll('.plot-tile').forEach(tile => {
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', () => {
+        const plotArea = tile.querySelector('.plot-area');
+        if (plotArea) openOverlay(plotArea.id);
+    });
+});
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {

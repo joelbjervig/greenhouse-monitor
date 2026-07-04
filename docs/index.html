@@ -84,8 +84,64 @@
             font-size: 1.4rem;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(78, 204, 163, 0.3);
+            z-index: 10;
         }
         .refresh-btn:active { transform: scale(0.9); }
+
+        /* Overlay for expanded tile */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100;
+            padding: 24px;
+            padding-top: env(safe-area-inset-top, 24px);
+            overflow-y: auto;
+        }
+        .overlay.active { display: flex; flex-direction: column; }
+        .overlay-card {
+            background: #16213e;
+            border-radius: 22px;
+            corner-shape: squircle;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            margin: auto 0;
+        }
+        .overlay-card h2 {
+            font-size: 1rem;
+            color: #ccc;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .overlay-card .latest {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4ecca3;
+            margin-bottom: 12px;
+        }
+        .overlay-card .plot-area-expanded {
+            flex: 1;
+            min-height: 250px;
+        }
+        .overlay-close {
+            align-self: flex-end;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #eee;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -131,6 +187,15 @@
     </div>
 
     <button class="refresh-btn" onclick="fetchData()">↻</button>
+
+    <div class="overlay" id="overlay" onclick="closeOverlay(event)">
+        <div class="overlay-card" onclick="event.stopPropagation()">
+            <button class="overlay-close" onclick="closeOverlay()">&times;</button>
+            <h2 id="overlay-title">--</h2>
+            <div class="latest" id="overlay-value">--</div>
+            <div class="plot-area-expanded" id="plot-expanded"></div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
