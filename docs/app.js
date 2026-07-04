@@ -205,8 +205,9 @@ function openOverlay(id, tileEl) {
     const card = document.querySelector('.overlay-card');
     const rect = tileEl.getBoundingClientRect();
     const cardWidth = Math.min(window.innerWidth * 0.9, 500);
-    const maxCardHeight = Math.min(300, window.innerHeight * 0.6);
-    card.style.maxHeight = maxCardHeight + 'px';
+    const cardHeight = Math.min(360, window.innerHeight * 0.65);
+    card.style.maxHeight = 'none';
+    card.style.height = cardHeight + 'px';
     let left = rect.left + rect.width / 2 - cardWidth / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - cardWidth - 8));
     card.style.width = cardWidth + 'px';
@@ -216,16 +217,16 @@ function openOverlay(id, tileEl) {
     const spaceAbove = rect.top - 16;
     const spaceBelow = window.innerHeight - rect.bottom - 16;
     let top;
-    if (spaceAbove >= maxCardHeight) {
-        top = rect.top - maxCardHeight - 12;
-    } else if (spaceBelow >= maxCardHeight) {
+    if (spaceAbove >= cardHeight) {
+        top = rect.top - cardHeight - 12;
+    } else if (spaceBelow >= cardHeight) {
         top = rect.bottom + 12;
     } else {
         // Center vertically if neither fits
-        top = Math.round((window.innerHeight - maxCardHeight) / 2);
+        top = Math.round((window.innerHeight - cardHeight) / 2);
     }
     // Final clamp: never outside viewport
-    top = Math.max(8, Math.min(top, window.innerHeight - maxCardHeight - 8));
+    top = Math.max(8, Math.min(top, window.innerHeight - cardHeight - 8));
     card.style.top = top + 'px';
     card.style.bottom = 'auto';
 
