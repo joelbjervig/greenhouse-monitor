@@ -1,6 +1,11 @@
 // Apps Script Web App URL (same deployment, doGet returns JSON)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzSCfVOhfDwxb2ymJmoYF-PILGAPOAikMPT1LcVcRXTBFt_Jtv_-9pq1AXAeAg57uWy/exec';
 
+// MET Norway Locationforecast (Arnebråtveien 64, 0771 Oslo)
+const WEATHER_LAT = 59.964;
+const WEATHER_LON = 10.682;
+const WEATHER_URL = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${WEATHER_LAT}&lon=${WEATHER_LON}`;
+
 /*
  * BH1749NUC Color Mapper
  * Converts raw 16-bit sensor counts to displayable RGB.
@@ -360,6 +365,102 @@ const resizeObserver = new ResizeObserver(() => {
     });
 });
 document.querySelectorAll('.plot-area').forEach(el => resizeObserver.observe(el));
+
+// --- Weather from MET Norway (api.met.no) ---
+async function fetchWeather() {
+    try {
+        const res = await fetch(WEATHER_URL, {
+            headers: { 'User-Agent': 'GreenhouseMonitor github.com/joelbjervig/greenhouse-monitor' }
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        renderWeather(json);
+    } catch (e) {
+        console.warn('Weather fetch failed:', e);
+    }
+}
+
+function renderWeather(forecast) {
+    const timeseries = forecast.properties.timeseries;
+    if (!timeseries || timeseries.length === 0) return;
+
+    const now = timeseries[0];
+    const details = now.data.instant.details;
+    const symbol = now.data.next_1_hours?.summary?.symbol_code || '';
+
+    // --- Temperature forecast (next 48h) ---
+    const tempTimes = [];
+    const tempVals = [];
+    for (const t of timeseries.slice(0, 48)) {
+        tempTimes.push(t.time);
+        tempVals.push(t.data.instant.details.air_temperature);
+    }
+
+    const currentTemp = details.air_temperature.toFixed(1);
+    const weatherDesc = symbol.replace(/_/g, ' ');
+    document.getElementById('val-weather-temp').textContent = currentTemp + '°C · ' + weatherDesc;
+
+    const autoRange = (arr) => {
+        const min = Math.min(...arr);
+        const max = Math.max(...arr);
+        const pad = (max - min) * 0.15 || 1;
+        return [min - pad, max + pad];
+    };
+
+    // Tile sparkline (next 12h)
+    Plotly.react('plot-weather-temp', [{
+        x: tempTimes.slice(0, 12), y: tempVals.slice(0, 12),
+        type: 'scatter', mode: 'lines',
+        line: { color: '#f1c40f', width: 1.5 },
+        fill: 'tozeroy', fillcolor: 'rgba(241,196,15,0.1)'
+    }], {
+        ...plotLayout,
+        xaxis: { ...plotLayout.xaxis, type: 'date' },
+        yaxis: { ...plotLayout.yaxis, range: autoRange(tempVals.slice(0, 12)), fixedrange: true },
+    }, plotConfig);
+
+    // Expanded view: full 48h
+    storeChartData('plot-weather-temp', 'Outdoor Temperature (48h)', currentTemp + '°C · ' + weatherDesc, [{
+        x: tempTimes, y: tempVals, type: 'scatter', mode: 'lines',
+        line: { color: '#f1c40f', width: 2 },
+        fill: 'tozeroy', fillcolor: 'rgba(241,196,15,0.1)'
+    }], autoRange(tempVals));
+
+    // --- Precipitation forecast (next 48h) ---
+    const precipTimes = [];
+    const precipVals = [];
+    for (const t of timeseries.slice(0, 48)) {
+        const precip = t.data.next_1_hours?.details?.precipitation_amount
+            ?? t.data.next_6_hours?.details?.precipitation_amount / 6
+            ?? 0;
+        precipTimes.push(t.time);
+        precipVals.push(precip);
+    }
+
+    const nextHourPrecip = (now.data.next_1_hours?.details?.precipitation_amount ?? 0).toFixed(1);
+    const totalNext12 = precipVals.slice(0, 12).reduce((a, b) => a + b, 0).toFixed(1);
+    document.getElementById('val-weather-precip').textContent = nextHourPrecip + ' mm/h · ' + totalNext12 + ' mm/12h';
+
+    // Tile sparkline (next 12h)
+    Plotly.react('plot-weather-precip', [{
+        x: precipTimes.slice(0, 12), y: precipVals.slice(0, 12),
+        type: 'bar',
+        marker: { color: 'rgba(52,152,219,0.7)' },
+    }], {
+        ...plotLayout,
+        xaxis: { ...plotLayout.xaxis, type: 'date' },
+        yaxis: { ...plotLayout.yaxis, range: [0, Math.max(...precipVals.slice(0, 12), 0.5)], fixedrange: true },
+    }, plotConfig);
+
+    // Expanded view: full 48h
+    storeChartData('plot-weather-precip', 'Precipitation (48h)', nextHourPrecip + ' mm/h', [{
+        x: precipTimes, y: precipVals, type: 'bar',
+        marker: { color: 'rgba(52,152,219,0.7)' },
+    }], [0, Math.max(...precipVals, 0.5)]);
+}
+
+fetchWeather();
+setInterval(fetchWeather, 1800000); // Refresh every 30 min
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
