@@ -369,9 +369,7 @@ document.querySelectorAll('.plot-area').forEach(el => resizeObserver.observe(el)
 // --- Weather from MET Norway (api.met.no) ---
 async function fetchWeather() {
     try {
-        const res = await fetch(WEATHER_URL, {
-            headers: { 'User-Agent': 'GreenhouseMonitor github.com/joelbjervig/greenhouse-monitor' }
-        });
+        const res = await fetch(WEATHER_URL);
         if (!res.ok) return;
         const json = await res.json();
         renderWeather(json);
