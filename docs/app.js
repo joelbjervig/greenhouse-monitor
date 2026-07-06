@@ -105,6 +105,13 @@ function renderDashboard({ headers, data }) {
     // Find column names (flexible matching)
     const colMap = findColumns(headers);
 
+    // Sort data by timestamp to prevent zigzag lines
+    data.sort((a, b) => {
+        const ta = new Date(a[colMap.timestamp] || a[headers[0]]);
+        const tb = new Date(b[colMap.timestamp] || b[headers[0]]);
+        return ta - tb;
+    });
+
     // Parse timestamps from the first column (Apps Script writes ISO datetime)
     const timestamps = data.map((row, i) => {
         // Try common timestamp column names
@@ -124,6 +131,10 @@ function renderDashboard({ headers, data }) {
     const blue = data.map(r => parseInt(r[colMap.blue]) || 0);
     const gas = data.map(r => parseInt(r[colMap.gas]) || 0);
     const ir = data.map(r => parseInt(r[colMap.ir]) || 0);
+    const battery = data.map(r => parseInt(r[colMap.battery]) || 0);
+    const rsrp = data.map(r => parseInt(r[colMap.rsrp]) || 0);
+    const uptime = data.map(r => parseInt(r[colMap.uptime]) || 0);
+    const failures = data.map(r => parseInt(r[colMap.failures]) || 0);
 
     // Update latest values
     const latest = data[data.length - 1];
@@ -133,6 +144,14 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-gas').textContent = (parseInt(latest[colMap.gas]) || 0) + ' Ω';
     document.getElementById('val-light').textContent = parseInt(latest[colMap.green]) || 0;
     document.getElementById('val-ir').textContent = parseInt(latest[colMap.ir]) || 0;
+    const batteryVal = parseInt(latest[colMap.battery]);
+    document.getElementById('val-battery').textContent = batteryVal >= 0 ? batteryVal + '%' : '—';
+    document.getElementById('val-rsrp').textContent = rsrpLabel(parseInt(latest[colMap.rsrp]) || -999);
+    const uptimeSec = parseInt(latest[colMap.uptime]) || 0;
+    const uptimeHrs = Math.floor(uptimeSec / 3600);
+    const uptimeMin = Math.floor((uptimeSec % 3600) / 60);
+    document.getElementById('val-uptime').textContent = uptimeHrs > 0 ? uptimeHrs + 'h ' + uptimeMin + 'm' : uptimeMin + 'm';
+    document.getElementById('val-failures').textContent = parseInt(latest[colMap.failures]) || 0;
 
     // Set page background gradient using calibrated color mapping
     const rVal = parseInt(latest[colMap.red]) || 0;
@@ -200,6 +219,10 @@ function renderDashboard({ headers, data }) {
         { x: timestamps, y: blue, type: 'scatter', mode: 'lines', line: { color: '#3498db', width: 1 } },
     ], tileLayout(autoRange([...red, ...green, ...blue])), plotConfig);
     Plotly.react('plot-ir', tileTrace(ir, '#8e44ad'), tileLayout(autoRange(ir)), plotConfig);
+    Plotly.react('plot-battery', tileTrace(battery, '#27ae60'), tileLayout([0, 105]), plotConfig);
+    Plotly.react('plot-rsrp', tileTrace(rsrp, '#e67e22'), rsrpTileLayout(rsrp), plotConfig);
+    Plotly.react('plot-uptime', tileTrace(uptime.map(s => s / 3600), '#1abc9c'), tileLayout(autoRange(uptime.map(s => s / 3600))), plotConfig);
+    Plotly.react('plot-failures', tileTrace(failures, '#e74c3c'), tileLayout(autoRange(failures)), plotConfig);
 
     // Store data for expanded interactive view
     storeChartData('plot-temp', 'Temperature', parseFloat(latest[colMap.temp]).toFixed(1) + '°C',
@@ -217,11 +240,44 @@ function renderDashboard({ headers, data }) {
     ], autoRange([...red, ...green, ...blue]));
     storeChartData('plot-ir', 'Infrared', (parseInt(latest[colMap.ir]) || 0).toString(),
         [{ x: timestamps, y: ir, type: 'scatter', mode: 'lines', line: { color: '#8e44ad', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(142,68,173,0.1)' }], autoRange(ir));
+    storeChartData('plot-battery', 'Battery', (parseInt(latest[colMap.battery]) || 0) + '%',
+        [{ x: timestamps, y: battery, type: 'scatter', mode: 'lines', line: { color: '#27ae60', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(39,174,96,0.1)' }], [0, 105]);
+    storeChartData('plot-rsrp', 'Signal (RSRP)', rsrpLabel(parseInt(latest[colMap.rsrp]) || -999),
+        [{ x: timestamps, y: rsrp, type: 'scatter', mode: 'lines', line: { color: '#fff', width: 2 } }], [-130, -40], rsrpShapes());
+    storeChartData('plot-uptime', 'Uptime', uptimeHrs > 0 ? uptimeHrs + 'h ' + uptimeMin + 'm' : uptimeMin + 'm',
+        [{ x: timestamps, y: uptime.map(s => s / 3600), type: 'scatter', mode: 'lines', line: { color: '#1abc9c', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(26,188,156,0.1)' }], autoRange(uptime.map(s => s / 3600)));
+    storeChartData('plot-failures', 'Failures', (parseInt(latest[colMap.failures]) || 0).toString(),
+        [{ x: timestamps, y: failures, type: 'scatter', mode: 'lines', line: { color: '#e74c3c', width: 2 }, fill: 'tozeroy', fillcolor: 'rgba(231,76,60,0.1)' }], autoRange(failures));
+}
+
+function rsrpLabel(dbm) {
+    if (dbm <= -999) return '—';
+    if (dbm > -80) return 'Excellent (' + dbm + ' dBm)';
+    if (dbm > -90) return 'Good (' + dbm + ' dBm)';
+    if (dbm > -110) return 'Fair (' + dbm + ' dBm)';
+    return 'Poor (' + dbm + ' dBm)';
+}
+
+function rsrpShapes() {
+    return [
+        { type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: -80, y1: -40, fillcolor: 'rgba(39,174,96,0.15)', line: { width: 0 } },
+        { type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: -90, y1: -80, fillcolor: 'rgba(241,196,15,0.15)', line: { width: 0 } },
+        { type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: -110, y1: -90, fillcolor: 'rgba(230,126,34,0.15)', line: { width: 0 } },
+        { type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: -130, y1: -110, fillcolor: 'rgba(231,76,60,0.15)', line: { width: 0 } },
+    ];
+}
+
+function rsrpTileLayout(rsrpArr) {
+    return {
+        ...plotLayout,
+        yaxis: { ...plotLayout.yaxis, range: [-130, -40], fixedrange: true },
+        shapes: rsrpShapes(),
+    };
 }
 
 function findColumns(headers) {
     // Flexible column matching - works with various header names
-    const map = { timestamp: null, temp: 'temp', hum: 'hum', press: 'press', red: 'red', green: 'green', blue: 'blue', gas: 'gas', ir: 'ir' };
+    const map = { timestamp: null, temp: 'temp', hum: 'hum', press: 'press', red: 'red', green: 'green', blue: 'blue', gas: 'gas', ir: 'ir', battery: 'battery', rsrp: 'rsrp', uptime: 'uptime', failures: 'failures' };
 
     for (const h of headers) {
         const hl = (typeof h === 'string' ? h : '').toLowerCase();
@@ -234,6 +290,10 @@ function findColumns(headers) {
         else if (hl === 'blue' || hl === 'b') map.blue = h;
         else if (hl.includes('gas')) map.gas = h;
         else if (hl === 'ir') map.ir = h;
+        else if (hl.includes('batt')) map.battery = h;
+        else if (hl.includes('rsrp') || hl.includes('signal')) map.rsrp = h;
+        else if (hl.includes('uptime')) map.uptime = h;
+        else if (hl.includes('fail')) map.failures = h;
     }
 
     return map;
@@ -246,8 +306,8 @@ setInterval(fetchData, 60000);
 // --- Expand tile on click ---
 let chartData = {}; // Store data for expanded view
 
-function storeChartData(id, title, value, traces, yRange) {
-    chartData[id] = { title, value, traces, yRange };
+function storeChartData(id, title, value, traces, yRange, shapes) {
+    chartData[id] = { title, value, traces, yRange, shapes };
 }
 
 function openOverlay(id, tileEl) {
@@ -283,6 +343,7 @@ function openOverlay(id, tileEl) {
         font: { color: 'rgba(255,255,255,0.7)', size: 11 },
         xaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickformat: '%H:%M', tickfont: { size: 10, color: 'rgba(255,255,255,0.6)' } },
         yaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickfont: { size: 10, color: 'rgba(255,255,255,0.6)' }, range: info.yRange },
+        shapes: info.shapes || [],
         showlegend: info.traces.length > 1,
         legend: { orientation: 'h', y: -0.15, font: { color: 'rgba(255,255,255,0.7)' } },
     };

@@ -41,15 +41,15 @@
         .grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
             gap: 3%;
             flex: 1;
             min-height: 0;
-            overflow: hidden;
+            overflow-y: auto;
         }
         @media (min-width: 480px) {
             .grid {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(5, 1fr);
                 grid-template-rows: repeat(2, 1fr);
             }
         }
@@ -214,6 +214,30 @@
             <h2>IR</h2>
             <div class="latest" id="val-ir">--</div>
             <div class="plot-area" id="plot-ir"></div>
+        </div>
+
+        <div class="plot-tile">
+            <h2>Battery</h2>
+            <div class="latest" id="val-battery">--%</div>
+            <div class="plot-area" id="plot-battery"></div>
+        </div>
+
+        <div class="plot-tile">
+            <h2>Signal</h2>
+            <div class="latest" id="val-rsrp">-- dBm</div>
+            <div class="plot-area" id="plot-rsrp"></div>
+        </div>
+
+        <div class="plot-tile">
+            <h2>Uptime</h2>
+            <div class="latest" id="val-uptime">--</div>
+            <div class="plot-area" id="plot-uptime"></div>
+        </div>
+
+        <div class="plot-tile">
+            <h2>Failures</h2>
+            <div class="latest" id="val-failures">--</div>
+            <div class="plot-area" id="plot-failures"></div>
         </div>
     </div>
 
