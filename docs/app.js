@@ -2,8 +2,8 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzSCfVOhfDwxb2ymJmoYF-PILGAPOAikMPT1LcVcRXTBFt_Jtv_-9pq1AXAeAg57uWy/exec';
 
 // MET Norway Locationforecast (Arnebråtveien 64, 0771 Oslo)
-const WEATHER_LAT = 59.964;
-const WEATHER_LON = 10.682;
+const WEATHER_LAT = 59.952057;
+const WEATHER_LON = 10.661623;
 const WEATHER_URL = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${WEATHER_LAT}&lon=${WEATHER_LON}`;
 
 /*
