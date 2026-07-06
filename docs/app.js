@@ -276,27 +276,21 @@ function rsrpTileLayout(rsrpArr) {
 }
 
 function findColumns(headers) {
-    // Flexible column matching - works with various header names
-    const map = { timestamp: null, temp: 'temp', hum: 'hum', press: 'press', red: 'red', green: 'green', blue: 'blue', gas: 'gas', ir: 'ir', battery: 'battery', rsrp: 'rsrp', uptime: 'uptime', failures: 'failures' };
-
-    for (const h of headers) {
-        const hl = (typeof h === 'string' ? h : '').toLowerCase();
-        if (hl.includes('time') || hl.includes('date') || hl.includes('stamp')) map.timestamp = h;
-        else if (hl.includes('temp')) map.temp = h;
-        else if (hl.includes('hum')) map.hum = h;
-        else if (hl.includes('press')) map.press = h;
-        else if (hl === 'red' || hl === 'r') map.red = h;
-        else if (hl === 'green' || hl === 'g') map.green = h;
-        else if (hl === 'blue' || hl === 'b') map.blue = h;
-        else if (hl.includes('gas')) map.gas = h;
-        else if (hl === 'ir') map.ir = h;
-        else if (hl.includes('batt')) map.battery = h;
-        else if (hl.includes('rsrp') || hl.includes('signal')) map.rsrp = h;
-        else if (hl.includes('uptime')) map.uptime = h;
-        else if (hl.includes('fail')) map.failures = h;
-    }
-
-    return map;
+    return {
+        timestamp: 'timestamp',
+        temp: 'temp',
+        hum: 'hum',
+        press: 'press',
+        gas: 'gas',
+        red: 'r',
+        green: 'g',
+        blue: 'b',
+        ir: 'ir',
+        battery: 'battery',
+        rsrp: 'rsrp',
+        uptime: 'uptime',
+        failures: 'failures',
+    };
 }
 
 // Auto-refresh every 2 minutes
@@ -317,7 +311,6 @@ function openOverlay(id, tileEl) {
     document.getElementById('overlay-title').textContent = info.title;
     document.getElementById('overlay-value').textContent = info.value;
 
-    // Simply center the card on screen
     const card = document.querySelector('.overlay-card');
     card.style.width = '85%';
     card.style.maxWidth = '500px';
@@ -328,13 +321,9 @@ function openOverlay(id, tileEl) {
     card.style.bottom = 'auto';
 
     document.getElementById('overlay').classList.add('active');
-    // Trigger scale animation
     requestAnimationFrame(() => {
         card.style.transform = 'translate(-50%, -50%) scale(1)';
     });
-    card.style.bottom = 'auto';
-
-    document.getElementById('overlay').classList.add('active');
 
     const expandedLayout = {
         paper_bgcolor: 'transparent',

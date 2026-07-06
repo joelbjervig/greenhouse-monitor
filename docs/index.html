@@ -41,16 +41,19 @@
         .grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(5, 1fr);
-            gap: 3%;
+            gap: clamp(6px, 2vw, 12px);
             flex: 1;
             min-height: 0;
             overflow-y: auto;
         }
         @media (min-width: 480px) {
             .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (min-width: 768px) {
+            .grid {
                 grid-template-columns: repeat(5, 1fr);
-                grid-template-rows: repeat(2, 1fr);
             }
         }
         .plot-tile {
@@ -58,13 +61,13 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 15%;
-            corner-shape: squircle;
-            padding: 8%;
+            border-radius: clamp(10px, 3vw, 20px);
+            padding: clamp(8px, 2.5vw, 14px);
             overflow: hidden;
             display: flex;
             flex-direction: column;
             min-height: 0;
+            aspect-ratio: 1;
         }
         .plot-tile h2 {
             font-size: 0.75rem;
@@ -127,9 +130,8 @@
             -webkit-backdrop-filter: blur(20px);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20%;
-            corner-shape: squircle;
-            padding: 6% 6% 6% 6%;
+            border-radius: clamp(14px, 4vw, 24px);
+            padding: clamp(16px, 4vw, 28px);
             display: flex;
             flex-direction: column;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
