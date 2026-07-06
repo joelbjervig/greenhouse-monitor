@@ -353,6 +353,14 @@ document.querySelectorAll('.plot-tile').forEach(tile => {
     });
 });
 
+// Resize all plots when tiles change size
+const resizeObserver = new ResizeObserver(() => {
+    document.querySelectorAll('.plot-area').forEach(el => {
+        if (el.data) Plotly.Plots.resize(el);
+    });
+});
+document.querySelectorAll('.plot-area').forEach(el => resizeObserver.observe(el));
+
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');

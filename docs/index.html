@@ -41,8 +41,9 @@
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 180px));
+            grid-auto-rows: min-content;
             justify-content: center;
-            gap: clamp(6px, 1.5vw, 12px);
+            gap: clamp(8px, 2.5vw, 14px);
             flex: 1;
             min-height: 0;
             overflow-y: auto;
@@ -72,6 +73,7 @@
         .plot-tile .plot-area {
             flex: 1;
             min-height: 0;
+            width: 100%;
         }
         .plot-tile .latest {
             font-size: 1.1rem;
