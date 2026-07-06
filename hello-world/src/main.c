@@ -15,6 +15,7 @@ LOG_MODULE_REGISTER(greenhouse, LOG_LEVEL_INF);
 #define CLOUD_SEND_EVERY  12  /* Send to cloud every 12 samples (60s) */
 #define LTE_RECONNECT_DELAY_MS 10000  /* Wait 10s before reconnect attempt */
 #define LTE_RECONNECT_TIMEOUT_S 60  /* Must be well under WDT timeout */
+#define LTE_MAX_RECONNECT_ATTEMPTS 3  /* Power cycle modem after this many failures */
 #define WDT_TIMEOUT_MS 120000  /* 2 minutes — reset if stuck */
 
 static const struct device *bme680;
@@ -23,6 +24,7 @@ static const struct device *wdt;
 static int wdt_channel_id;
 static volatile bool lte_connected;
 static int upload_failures;
+static int reconnect_failures;
 
 K_SEM_DEFINE(lte_connected_sem, 0, 1);
 
@@ -66,22 +68,35 @@ static int lte_reconnect(void)
 {
 	int err;
 
+	/* If we've failed too many times, power cycle the modem */
+	if (reconnect_failures >= LTE_MAX_RECONNECT_ATTEMPTS) {
+		LOG_WRN("LTE: %d consecutive failures, power cycling modem",
+			reconnect_failures);
+		lte_lc_power_off();
+		k_msleep(2000);
+		lte_lc_normal();
+		reconnect_failures = 0;
+	}
+
 	LOG_INF("LTE: Attempting reconnect...");
 	k_sem_reset(&lte_connected_sem);
 
 	err = lte_lc_connect_async(lte_handler);
 	if (err) {
 		LOG_ERR("LTE reconnect request failed: %d", err);
+		reconnect_failures++;
 		return err;
 	}
 
 	/* Wait with timeout well under watchdog window */
 	if (k_sem_take(&lte_connected_sem, K_SECONDS(LTE_RECONNECT_TIMEOUT_S)) != 0) {
 		LOG_WRN("LTE: Reconnect timed out after %ds", LTE_RECONNECT_TIMEOUT_S);
+		reconnect_failures++;
 		return -ETIMEDOUT;
 	}
 
 	LOG_INF("LTE: Reconnected");
+	reconnect_failures = 0;
 	return 0;
 }
 
