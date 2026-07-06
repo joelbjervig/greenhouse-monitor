@@ -151,45 +151,6 @@ function renderDashboard({ headers, data }) {
     document.getElementById('val-uptime').textContent = uptimeHrs > 0 ? uptimeHrs + 'h ' + uptimeMin + 'm' : uptimeMin + 'm';
     document.getElementById('val-failures').textContent = parseInt(latest[colMap.failures]) || 0;
 
-    // Set page background gradient using calibrated color mapping
-    const rVal = parseInt(latest[colMap.red]) || 0;
-    const gVal = parseInt(latest[colMap.green]) || 0;
-    const bVal = parseInt(latest[colMap.blue]) || 0;
-    const irVal = parseInt(latest[colMap.ir]) || 0;
-    const mappedColor = colorMapper.mapToRGB({ r: rVal, g: gVal, b: bVal, ir: irVal });
-    console.log('Color sensor raw:', { r: rVal, g: gVal, b: bVal, ir: irVal }, '→ mapped:', mappedColor);
-    // Brightness scaling: dim at night, brighter in day
-    const totalNow = rVal + gVal + bVal;
-    const maxTotal = Math.max(...red.map((r, i) => r + green[i] + blue[i]), 1);
-    const intensityRatio = Math.min(totalNow / maxTotal, 1);
-    const brightScale = 0.6 + intensityRatio * 0.7; // 30% min brightness
-    const rBg = Math.round(mappedColor.r * brightScale);
-    const gBg = Math.round(mappedColor.g * brightScale);
-    const bBg = Math.round(mappedColor.b * brightScale);
-    document.body.style.background = `linear-gradient(to bottom, rgb(${rBg}, ${gBg}, ${bBg}), rgb(${Math.round(rBg * 0.4)}, ${Math.round(gBg * 0.4)}, ${Math.round(bBg * 0.4)}))`;
-    document.body.style.minHeight = '100vh';
-
-    // Set text color based on background brightness (perceptual luminance)
-    const brightness = 0.299 * (rBg + 15) + 0.587 * (gBg + 15) + 0.114 * (bBg + 15);
-    const textColor = brightness > 128 ? '#111' : '#eee';
-    const valueColor = brightness > 128 ? '#000' : '#fff';
-    document.body.style.color = textColor;
-    document.querySelectorAll('.plot-tile .latest').forEach(el => el.style.color = valueColor);
-    document.querySelectorAll('.plot-tile h2').forEach(el => el.style.color = textColor);
-
-    // Adapt tile and popup backgrounds based on brightness
-    const tileBg = brightness > 128 ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)';
-    const tileBorder = brightness > 128 ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
-    document.querySelectorAll('.plot-tile').forEach(el => {
-        el.style.background = tileBg;
-        el.style.borderColor = tileBorder;
-    });
-    const overlayCard = document.querySelector('.overlay-card');
-    if (overlayCard) {
-        overlayCard.style.background = brightness > 128 ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
-        overlayCard.style.borderColor = tileBorder;
-    }
-
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `Last refresh: ${now.toLocaleTimeString()}  ·  ${data.length} readings`;
     document.getElementById('lastUpdate').classList.remove('error');
@@ -371,6 +332,61 @@ const resizeObserver = new ResizeObserver(() => {
 });
 document.querySelectorAll('.plot-area').forEach(el => resizeObserver.observe(el));
 
+// --- Sky background based on time of day + weather ---
+function updateSkyBackground(weatherData) {
+    const hour = new Date().getHours() + new Date().getMinutes() / 60;
+
+    // Base sky colors by time of day (top, bottom)
+    const skyStops = [
+        { h: 0,  top: [10, 10, 40],    bot: [5, 5, 20] },     // midnight
+        { h: 5,  top: [15, 15, 50],    bot: [10, 10, 30] },    // pre-dawn
+        { h: 6,  top: [40, 50, 100],   bot: [180, 100, 60] },  // dawn
+        { h: 7,  top: [80, 130, 200],  bot: [220, 150, 80] },  // sunrise
+        { h: 9,  top: [100, 160, 230], bot: [140, 190, 240] }, // morning
+        { h: 12, top: [90, 150, 220],  bot: [130, 180, 230] }, // noon
+        { h: 18, top: [80, 130, 200],  bot: [130, 170, 220] }, // afternoon
+        { h: 20, top: [60, 60, 120],   bot: [200, 120, 60] },  // sunset
+        { h: 21, top: [30, 30, 80],    bot: [120, 60, 40] },   // dusk
+        { h: 22, top: [15, 15, 50],    bot: [20, 15, 40] },    // night
+        { h: 24, top: [10, 10, 40],    bot: [5, 5, 20] },      // midnight
+    ];
+
+    // Interpolate between stops
+    let i = 0;
+    while (i < skyStops.length - 1 && skyStops[i + 1].h <= hour) i++;
+    const a = skyStops[i], b = skyStops[Math.min(i + 1, skyStops.length - 1)];
+    const t = b.h === a.h ? 0 : (hour - a.h) / (b.h - a.h);
+    const lerp = (from, to) => from.map((v, j) => Math.round(v + (to[j] - v) * t));
+    let top = lerp(a.top, b.top);
+    let bot = lerp(a.bot, b.bot);
+
+    // Weather modification: cloud cover grays it out, rain adds blue
+    if (weatherData) {
+        const clouds = (weatherData.cloud_area_fraction ?? 0) / 100; // 0-1
+        const precip = Math.min((weatherData.precipitation_amount ?? 0) / 3, 1); // 0-1
+        const gray = [140, 140, 150];
+        const rainTint = [40, 60, 100];
+        top = top.map((v, j) => Math.round(v * (1 - clouds * 0.5) + gray[j] * clouds * 0.5));
+        bot = bot.map((v, j) => Math.round(v * (1 - clouds * 0.4) + gray[j] * clouds * 0.4));
+        top = top.map((v, j) => Math.round(v * (1 - precip * 0.3) + rainTint[j] * precip * 0.3));
+    }
+
+    document.body.style.background = `linear-gradient(to bottom, rgb(${top}), rgb(${bot}))`;
+    document.body.style.minHeight = '100vh';
+
+    // Adjust text color based on brightness
+    const brightness = 0.299 * top[0] + 0.587 * top[1] + 0.114 * top[2];
+    const textColor = brightness > 140 ? '#111' : '#eee';
+    document.body.style.color = textColor;
+    document.querySelectorAll('.plot-tile .latest').forEach(el => el.style.color = textColor);
+    document.querySelectorAll('.plot-tile h2').forEach(el => el.style.color = textColor);
+}
+
+// Update background every minute
+let currentWeatherDetails = null;
+setInterval(() => updateSkyBackground(currentWeatherDetails), 60000);
+updateSkyBackground(null);
+
 // --- Weather from MET Norway (api.met.no) ---
 async function fetchWeather() {
     try {
@@ -390,6 +406,13 @@ function renderWeather(forecast) {
     const now = timeseries[0];
     const details = now.data.instant.details;
     const symbol = now.data.next_1_hours?.summary?.symbol_code || '';
+
+    // Update sky background with weather data
+    currentWeatherDetails = {
+        cloud_area_fraction: details.cloud_area_fraction ?? 0,
+        precipitation_amount: now.data.next_1_hours?.details?.precipitation_amount ?? 0,
+    };
+    updateSkyBackground(currentWeatherDetails);
 
     // --- Temperature forecast (next 48h) ---
     const tempTimes = [];
