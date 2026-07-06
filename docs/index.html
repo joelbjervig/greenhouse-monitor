@@ -40,34 +40,27 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: clamp(6px, 2vw, 12px);
+            grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 180px));
+            justify-content: center;
+            gap: clamp(6px, 1.5vw, 12px);
             flex: 1;
             min-height: 0;
             overflow-y: auto;
-        }
-        @media (min-width: 480px) {
-            .grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        @media (min-width: 768px) {
-            .grid {
-                grid-template-columns: repeat(5, 1fr);
-            }
+            padding-bottom: 60px;
         }
         .plot-tile {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: clamp(10px, 3vw, 20px);
-            padding: clamp(8px, 2.5vw, 14px);
+            border-radius: clamp(10px, 2.5vw, 18px);
+            padding: clamp(8px, 2vw, 14px);
             overflow: hidden;
             display: flex;
             flex-direction: column;
             min-height: 0;
             aspect-ratio: 1;
+            min-width: 0;
         }
         .plot-tile h2 {
             font-size: 0.75rem;
