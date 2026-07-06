@@ -68,10 +68,19 @@ int cloud_provision_cert(void)
 
 int cloud_read_battery(void)
 {
-	uint16_t vbat_mv;
-	int err = nrf_modem_at_scanf("AT%%XVBAT", "%%XVBAT: %hu", &vbat_mv);
-	if (err != 1) {
-		LOG_WRN("AT%%XVBAT not supported (modem FW too old?)");
+	char buf[64];
+	uint16_t vbat_mv = 0;
+	int err;
+
+	err = nrf_modem_at_cmd(buf, sizeof(buf), "AT%%XVBAT");
+	if (err) {
+		LOG_WRN("AT%%XVBAT cmd failed: %d", err);
+		return -1;
+	}
+
+	/* Response format: "%XVBAT: <millivolts>\r\n" */
+	if (sscanf(buf, "%%XVBAT: %hu", &vbat_mv) != 1) {
+		LOG_WRN("AT%%XVBAT parse failed, raw: %.40s", buf);
 		return -1;
 	}
 
@@ -83,23 +92,57 @@ int cloud_read_battery(void)
 	return percent;
 }
 
+int cloud_read_rsrp(void)
+{
+	char buf[128];
+	int err;
+
+	err = nrf_modem_at_cmd(buf, sizeof(buf), "AT+CESQ");
+	if (err) {
+		LOG_WRN("AT+CESQ cmd failed: %d", err);
+		return -999;
+	}
+
+	/* Response: "+CESQ: <rxlev>,<ber>,<rscp>,<ecno>,<rsrq>,<rsrp>" */
+	int rxlev, ber, rscp, ecno, rsrq, rsrp;
+	if (sscanf(buf, "+CESQ: %d,%d,%d,%d,%d,%d",
+		   &rxlev, &ber, &rscp, &ecno, &rsrq, &rsrp) < 6) {
+		LOG_WRN("AT+CESQ parse failed, raw: %.60s", buf);
+		return -999;
+	}
+
+	/* RSRP index 0-97 maps to -140..-44 dBm (index 255 = not known) */
+	if (rsrp == 255) {
+		LOG_WRN("RSRP not available");
+		return -999;
+	}
+
+	int rsrp_dbm = rsrp - 140;
+	LOG_INF("RSRP: %d dBm", rsrp_dbm);
+	return rsrp_dbm;
+}
+
 int cloud_send_sensor_data(int temp_i, int temp_f,
 			   int hum_i, int hum_f,
 			   int press_i, int press_f,
-			   int gas, int r, int g, int b, int ir_val)
+			   int gas, int r, int g, int b, int ir_val,
+			   int battery_pct, int rsrp,
+			   int uptime_s, int failures)
 {
 	int fd;
 	int err;
-	char payload[128];
-	char request[512];
+	char payload[256];
+	char request[640];
 	char response[256];
 
 	/* Format JSON payload */
 	int plen = snprintf(payload, sizeof(payload),
 		"{\"temp\":%d.%02d,\"hum\":%d.%02d,\"press\":%d.%02d,"
-		"\"gas\":%d,\"r\":%d,\"g\":%d,\"b\":%d,\"ir\":%d}",
+		"\"gas\":%d,\"r\":%d,\"g\":%d,\"b\":%d,\"ir\":%d,"
+		"\"battery\":%d,\"rsrp\":%d,\"uptime\":%d,\"failures\":%d}",
 		temp_i, temp_f, hum_i, hum_f, press_i, press_f,
-		gas, r, g, b, ir_val);
+		gas, r, g, b, ir_val, battery_pct, rsrp,
+		uptime_s, failures);
 
 	/* Create TLS socket */
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);

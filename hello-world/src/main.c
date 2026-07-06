@@ -14,6 +14,7 @@ LOG_MODULE_REGISTER(greenhouse, LOG_LEVEL_INF);
 #define SAMPLE_INTERVAL_MS 5000
 #define CLOUD_SEND_EVERY  12  /* Send to cloud every 12 samples (60s) */
 #define LTE_RECONNECT_DELAY_MS 10000  /* Wait 10s before reconnect attempt */
+#define LTE_RECONNECT_TIMEOUT_S 60  /* Must be well under WDT timeout */
 #define WDT_TIMEOUT_MS 120000  /* 2 minutes — reset if stuck */
 
 static const struct device *bme680;
@@ -21,6 +22,7 @@ static const struct device *bh1749;
 static const struct device *wdt;
 static int wdt_channel_id;
 static volatile bool lte_connected;
+static int upload_failures;
 
 K_SEM_DEFINE(lte_connected_sem, 0, 1);
 
@@ -53,6 +55,13 @@ static void lte_handler(const struct lte_lc_evt *const evt)
 	}
 }
 
+static void feed_watchdog(void)
+{
+	if (wdt_channel_id >= 0 && device_is_ready(wdt)) {
+		wdt_feed(wdt, wdt_channel_id);
+	}
+}
+
 static int lte_reconnect(void)
 {
 	int err;
@@ -66,9 +75,9 @@ static int lte_reconnect(void)
 		return err;
 	}
 
-	/* Wait up to 120s for reconnection */
-	if (k_sem_take(&lte_connected_sem, K_SECONDS(120)) != 0) {
-		LOG_ERR("LTE: Reconnect timed out");
+	/* Wait with timeout well under watchdog window */
+	if (k_sem_take(&lte_connected_sem, K_SECONDS(LTE_RECONNECT_TIMEOUT_S)) != 0) {
+		LOG_WRN("LTE: Reconnect timed out after %ds", LTE_RECONNECT_TIMEOUT_S);
 		return -ETIMEDOUT;
 	}
 
@@ -121,18 +130,35 @@ static void read_sensors_csv(int sample)
 
 	/* Send to Google Sheets every CLOUD_SEND_EVERY samples */
 	if (sample % CLOUD_SEND_EVERY == 0) {
+		/* Feed watchdog before potentially long cloud operations */
+		feed_watchdog();
+
 		if (!lte_connected) {
 			LOG_WRN("LTE not connected, attempting reconnect");
 			lte_reconnect();
 		}
+
+		/* Feed again after reconnect attempt, before TLS/HTTP */
+		feed_watchdog();
+
 		if (lte_connected) {
+			int battery = cloud_read_battery();
+			int rsrp = cloud_read_rsrp();
+			int uptime_s = (int)(k_uptime_get() / 1000);
 			int ret = cloud_send_sensor_data(temp_i, temp_f, hum_i, hum_f,
 					       press_i, press_f, gas_val,
-					       r_val, g_val, b_val, ir_val);
+					       r_val, g_val, b_val, ir_val,
+					       battery, rsrp,
+					       uptime_s, upload_failures);
 			if (ret < 0) {
 				LOG_WRN("Cloud upload failed (%d), will retry next cycle", ret);
 				lte_connected = false;
+				upload_failures++;
+			} else {
+				upload_failures = 0;
 			}
+		} else {
+			upload_failures++;
 		}
 	}
 }
@@ -210,10 +236,7 @@ int main(void)
 	/* Main sensor loop — CSV output */
 	printk("uptime_ms,sample,temp_c,humidity_pct,pressure_kpa,gas_ohm,red,green,blue,ir\n");
 	while (1) {
-		/* Feed watchdog — proves main loop is alive */
-		if (wdt_channel_id >= 0 && device_is_ready(wdt)) {
-			wdt_feed(wdt, wdt_channel_id);
-		}
+		feed_watchdog();
 		sample++;
 		read_sensors_csv(sample);
 		k_msleep(SAMPLE_INTERVAL_MS);
