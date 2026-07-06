@@ -113,8 +113,13 @@ function renderDashboard({ headers, data }) {
     // Sort data by timestamp
     data.sort((a, b) => new Date(a[colMap.timestamp]) - new Date(b[colMap.timestamp]));
 
-    // Pass timestamp strings directly to Plotly (it parses date strings natively)
-    const timestamps = data.map(row => row[colMap.timestamp]);
+    // Convert timestamps to local time strings for Plotly
+    const timestamps = data.map(row => {
+        const d = new Date(row[colMap.timestamp]);
+        if (isNaN(d)) return row[colMap.timestamp];
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    });
 
     const temp = data.map(r => parseFloat(r[colMap.temp]) || 0);
     const hum = data.map(r => parseFloat(r[colMap.hum]) || 0);
