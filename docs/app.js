@@ -69,7 +69,7 @@ const plotLayout = {
     plot_bgcolor: 'transparent',
     margin: { l: 32, r: 8, t: 4, b: 24 },
     font: { color: 'rgba(255,255,255,0.6)', size: 10 },
-    xaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickformat: '%H:%M', showgrid: false, tickfont: { size: 9, color: 'rgba(255,255,255,0.5)' } },
+    xaxis: { type: 'date', gridcolor: 'rgba(255,255,255,0.1)', tickformat: '%H:%M', showgrid: false, tickfont: { size: 9, color: 'rgba(255,255,255,0.5)' } },
     yaxis: { gridcolor: 'rgba(255,255,255,0.1)', showgrid: false, tickfont: { size: 9, color: 'rgba(255,255,255,0.5)' } },
     showlegend: false,
 };
@@ -105,23 +105,11 @@ function renderDashboard({ headers, data }) {
     // Find column names (flexible matching)
     const colMap = findColumns(headers);
 
-    // Sort data by timestamp to prevent zigzag lines
-    data.sort((a, b) => {
-        const ta = new Date(a[colMap.timestamp] || a[headers[0]]);
-        const tb = new Date(b[colMap.timestamp] || b[headers[0]]);
-        return ta - tb;
-    });
+    // Sort data by timestamp
+    data.sort((a, b) => new Date(a[colMap.timestamp]) - new Date(b[colMap.timestamp]));
 
-    // Parse timestamps from the first column (Apps Script writes ISO datetime)
-    const timestamps = data.map((row, i) => {
-        // Try common timestamp column names
-        const ts = row[colMap.timestamp] || row[headers[0]];
-        if (ts) {
-            const d = new Date(ts);
-            if (!isNaN(d)) return d;
-        }
-        return i;
-    });
+    // Pass timestamp strings directly to Plotly (it parses date strings natively)
+    const timestamps = data.map(row => row[colMap.timestamp]);
 
     const temp = data.map(r => parseFloat(r[colMap.temp]) || 0);
     const hum = data.map(r => parseFloat(r[colMap.hum]) || 0);
@@ -330,7 +318,7 @@ function openOverlay(id, tileEl) {
         plot_bgcolor: 'transparent',
         margin: { l: 30, r: 30, t: 8, b: 36 },
         font: { color: 'rgba(255,255,255,0.7)', size: 11 },
-        xaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickformat: '%H:%M', tickfont: { size: 10, color: 'rgba(255,255,255,0.6)' } },
+        xaxis: { type: 'date', gridcolor: 'rgba(255,255,255,0.1)', tickformat: '%H:%M', tickfont: { size: 10, color: 'rgba(255,255,255,0.6)' } },
         yaxis: { gridcolor: 'rgba(255,255,255,0.1)', tickfont: { size: 10, color: 'rgba(255,255,255,0.6)' }, range: info.yRange },
         shapes: info.shapes || [],
         showlegend: info.traces.length > 1,
