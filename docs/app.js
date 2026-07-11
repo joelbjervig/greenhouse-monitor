@@ -121,6 +121,9 @@ function renderDashboard({ headers, data }) {
     // Find column names (flexible matching)
     const colMap = findColumns(headers);
 
+    // Work on a copy so rawSensorData is never mutated
+    data = data.slice();
+
     // Sort data by timestamp
     data.sort((a, b) => new Date(a[colMap.timestamp]) - new Date(b[colMap.timestamp]));
 
