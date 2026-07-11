@@ -69,6 +69,16 @@ function toCssColor({ r, g, b }) {
 // Recalibrate by reading R/G/B from Google Sheet when sensor faces a white target.
 const colorMapper = createColorMapper({ r: 946, g: 1617, b: 1881 });
 
+// --- Time range state ---
+let rawSensorData = null; // Store full API response for re-filtering
+let selectedRange = 86400000; // Default: 1 day in ms, or 'all'
+
+function getTickFormat(rangeMs) {
+    if (rangeMs === 'all' || rangeMs > 604800000) return '%b %d';
+    if (rangeMs > 86400000) return '%a %H:%M';
+    return '%H:%M';
+}
+
 const plotLayout = {
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
@@ -94,6 +104,7 @@ async function fetchData() {
         const res = await fetch(API_URL);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
+        rawSensorData = JSON.parse(JSON.stringify(json));
         renderDashboard(json);
     } catch (err) {
         subtitle.textContent = `Error: ${err.message}`;
@@ -112,6 +123,18 @@ function renderDashboard({ headers, data }) {
 
     // Sort data by timestamp
     data.sort((a, b) => new Date(a[colMap.timestamp]) - new Date(b[colMap.timestamp]));
+
+    // Filter by selected time range
+    if (selectedRange !== 'all') {
+        const cutoff = Date.now() - selectedRange;
+        data = data.filter(row => new Date(row[colMap.timestamp]).getTime() >= cutoff);
+        if (data.length === 0) {
+            document.getElementById('lastUpdate').textContent = 'No data in selected range';
+            return;
+        }
+    }
+
+    const tickFmt = getTickFormat(selectedRange);
 
     // Convert timestamps to local time strings for Plotly
     const timestamps = data.map(row => {
@@ -164,6 +187,7 @@ function renderDashboard({ headers, data }) {
     };
     const tileLayout = (yRange) => ({
         ...plotLayout,
+        xaxis: { ...plotLayout.xaxis, tickformat: tickFmt },
         yaxis: { ...plotLayout.yaxis, range: yRange, fixedrange: true },
     });
     const tileTrace = (y, color) => [{ x: timestamps, y, type: 'scatter', mode: 'lines', line: { color, width: 1.5 }, fill: 'tozeroy', fillcolor: color + '18' }];
@@ -229,6 +253,7 @@ function rsrpShapes() {
 function rsrpTileLayout(rsrpArr) {
     return {
         ...plotLayout,
+        xaxis: { ...plotLayout.xaxis, tickformat: getTickFormat(selectedRange) },
         yaxis: { ...plotLayout.yaxis, range: [-130, -40], fixedrange: true },
         shapes: rsrpShapes(),
     };
@@ -252,9 +277,16 @@ function findColumns(headers) {
     };
 }
 
-// Auto-refresh every 2 minutes
+// Auto-refresh every minute
 fetchData();
 setInterval(fetchData, 60000);
+
+// Time range dropdown
+document.getElementById('timeRange').addEventListener('change', function () {
+    const val = this.value;
+    selectedRange = val === 'all' ? 'all' : parseInt(val);
+    if (rawSensorData) renderDashboard(rawSensorData);
+});
 
 // --- Expand tile on click ---
 let chartData = {}; // Store data for expanded view

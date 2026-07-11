@@ -38,6 +38,37 @@
             margin-bottom: 8px;
             padding-left: 4px;
         }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .time-select {
+            appearance: none;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.12);
+            color: inherit;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 6px 28px 6px 10px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.5)'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .time-select:focus {
+            border-color: rgba(255,255,255,0.4);
+        }
+        .time-select option {
+            background: #222;
+            color: #eee;
+        }
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(min(clamp(140px, 18vw, 220px), calc(50% - 8px)), 1fr));
@@ -175,8 +206,21 @@
     </style>
 </head>
 <body>
-    <h1>Greenhouse</h1>
-    <div class="subtitle" id="lastUpdate">Loading...</div>
+    <div class="header-row">
+        <div>
+            <h1>Greenhouse</h1>
+            <div class="subtitle" id="lastUpdate">Loading...</div>
+        </div>
+        <select id="timeRange" class="time-select">
+            <option value="3600000">1 hour</option>
+            <option value="21600000">6 hours</option>
+            <option value="43200000">12 hours</option>
+            <option value="86400000" selected>1 day</option>
+            <option value="604800000">1 week</option>
+            <option value="2592000000">1 month</option>
+            <option value="all">All</option>
+        </select>
+    </div>
 
     <div class="grid">
         <div class="plot-tile">
